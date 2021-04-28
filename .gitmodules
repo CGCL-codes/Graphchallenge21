@@ -1,0 +1,33 @@
+[submodule "SC Sputnik"]
+	path = 3rd_party/sputnik
+	url = https://github.com/google-research/sputnik.git
+
+[submodule "PPoPP TuringAs"]
+	path = 3rd_party/turingas
+	url = https://github.com/daadaada/turingas.git
+
+[submodule "PPoPP GAS"]
+	path = 3rd_party/gas
+	url = https://github.com/daadaada/gas.git
+
+[submodule "PACT SparseRT"]
+	path = 3rd_party/gpu-sparsert
+	url = https://github.com/marsupialtail/gpu-sparsert.git
+
+
+[submodule "20 Champions UIUC/NVIDIA"]
+	path = 3rd_party/20-graphchallenge/SpDNN_Challenge2020
+	url = https://github.com/merthidayetoglu/SpDNN_Challenge2020.git
+
+    
+[submodule "20 Champions Utah"]
+	path = 3rd_party/20-graphchallenge/SNIG
+	url = https://github.com/dian-lun-lin/SNIG.git
+
+
+[submodule "20 Innovation Pitt"]
+	path = 3rd_party/20-graphchallenge/DistSparseDNN
+	url = https://github.com/hmofrad/DistSparseDNN.git
+
+
+
