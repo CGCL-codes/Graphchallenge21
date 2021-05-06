@@ -9,6 +9,10 @@
 [submodule "PPoPP GAS"]
 	path = 3rd_party/gas
 	url = https://github.com/daadaada/gas.git
+	
+[submodule "CGO GPA"]
+	path = 3rd_party/GPA
+	url = https://github.com/Jokeren/GPA.git
 
 [submodule "PACT SparseRT"]
 	path = 3rd_party/gpu-sparsert
@@ -28,6 +32,4 @@
 [submodule "20 Innovation Pitt"]
 	path = 3rd_party/20-graphchallenge/DistSparseDNN
 	url = https://github.com/hmofrad/DistSparseDNN.git
-
-
 
