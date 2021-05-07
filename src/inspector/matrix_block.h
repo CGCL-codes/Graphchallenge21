@@ -122,6 +122,15 @@ namespace ftxj {
             RowIterator iter = matrix.row_begin_at(beg.row_idx, beg.col_idx);
             set_data(iter, beg, end);
         }
+        
+        int get_line_len() {
+            return 0; // TODO, fix bugs
+        }
+        
+        SparseDataType get_values() {
+            return 0; // TODO, fix bugs
+        }
+
     };
 
     class RowStrideLineBlock : public RowLineBlock, StrideBlockBase {
