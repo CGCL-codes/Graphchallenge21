@@ -3,6 +3,7 @@
 #include "utils/string.h"
 #include <map>
 #include <vector>
+#include <stack>
 
 namespace ftxj {
     
@@ -59,8 +60,11 @@ namespace ftxj {
         std::vector<WrapBlock> wrap_block_schedule; 
         
         Schedule group_task_schedule;
+        Strategy run_strategy;
 
         Variable dense_matrix_block_mem;
+        std::stack<Variable> dense_matrix_block_mem_stack;
+
         Variable sparse_matrix_block_mem;
         Variable output_matrix_block_mem;
 
@@ -107,6 +111,8 @@ namespace ftxj {
             instr += "i += " + expr_3 + ") {";
             code.push_code(instr);
         }
+
+        void emit_global_function(std::string func_name, )
 
         void emit_for_loop_end() {
             std::string instr;
@@ -218,9 +224,6 @@ namespace ftxj {
 
 
         void emit_feature_axis_parallel_row_line_no_unroll(int block_id, int group_id, RowLineBlock &row_line_block) {
-            std::string tmp_reg_name = "tmp_dense_feature";
-            Variable tmp = emit_reg_variable_declare_statement(tmp_reg_name, "float");
-            
             std::string feature_idx = group_task_schedule.get_feature_begin(block_id, group_id);
             std::string stride = group_task_schedule.get_feature_stride(block_id, group_id);
             std::string max_feature = group_task_schedule.get_feature_number(block_id, group_id);
@@ -229,7 +232,7 @@ namespace ftxj {
             
             emit_for_loop_begin(feature_idx, max_feature, stride, loop_iter_name);
             {
-                emit_load_dense_to_reg(tmp, feature_idx);
+                emit_load_dense_to_reg(dense_matrix_block_mem, feature_idx);
             
                 std::string expr1 = "0";
                 std::string expr2 = row_line_block.get_line_len();
@@ -241,7 +244,7 @@ namespace ftxj {
                     auto output_value = gen_memory_access(output_matrix_block_mem, iter_name);
                     auto sparse_value = gen_memory_access(sparse_matrix_block_mem, iter_name);
 
-                    gen_fma(output_value, tmp, sparse_value);
+                    gen_fma(output_value, dense_matrix_block_mem, sparse_value);
                 }
                 emit_for_loop_end();
             }
@@ -291,6 +294,10 @@ namespace ftxj {
         }
 
         void run(int block_num, int thread_group_num) {
+            std::string kernel_name =  "spmm_" + run_strategy.get_strategy();
+
+            
+
             for(int i = 0; i < block_num; ++i) {
                 emit_block_start_control(i);
                 for(int j = 0; j < thread_group_num; ++j) {
