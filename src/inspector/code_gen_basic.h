@@ -90,10 +90,6 @@ namespace ftxj {
             return name_;
         }
 
-        ArrayAccess operator[](Operation i) {
-
-        }
-
         std::string gen_statement() {
             std::string instr;
             if(is_extern) instr += "extern ";
@@ -105,13 +101,10 @@ namespace ftxj {
             instr += name_;
             return instr;
         }
-    };
-
-    class ConstantVar : public Statement {
-        std::string name_;
-        public:
-        std::string gen_statement() {
-            return name_;  
+        
+        ArrayAccess operator[](Operation &i) {
+            Variable* var = new Variable(this);
+            return ArrayAccess(var, &i);
         }
     };
 
@@ -119,6 +112,13 @@ namespace ftxj {
         VariableDecl *var;
         std::vector<ConstantVar> dim_len_;
         public:
+
+        VariableArrayDecl(VariableDecl *v, std::vector<ConstantVar> &dim_len) 
+            : var(v), dim_len_(dim_len)  
+        {
+
+        }
+
         std::string gen_statement() {
             std::string instr;
             instr += var->gen_statement();
@@ -138,6 +138,13 @@ namespace ftxj {
         Statement* expr3;
         Variable* iter;
         public:
+        ForLoopScope(Statement* expr_1, Statement* expr_2, Statement* expr_3, Variable* iter_) : {
+            expr1 = expr_1;
+            expr2 = expr_2;
+            expr3 = expr_3;
+            iter = iter_;
+        }
+
         std::string gen_statement() {
             std::string instr;
             instr += "for(int " + iter->gen_statement() + " = " + expr1->gen_statement() + "; ";
@@ -179,6 +186,26 @@ namespace ftxj {
             return res;
         }
 
+        
+        Operation operator<(const Operation &that) {
+            Operation res("<", this, &that);
+            return res;
+        }
+
+        Operation operator>(const Operation &that) {
+            Operation res(">", this, &that);
+            return res;
+        }
+
+        Operation operator==(const Operation &that) {
+            Operation res("==", this, &that);
+            return res;
+        }
+
+        Operation operator!=(const Operation &that) {
+            Operation res("!=", this, &that);
+            return res;
+        }
 
         Operation operator=(const Operation &that) {
             Operation res("=", this, &that);
@@ -201,13 +228,61 @@ namespace ftxj {
     class Variable : public Operation {
         VariableDecl* father_;
         public:
+        
+        Variable(VariableDecl* vdecl) : father_(vdecl) {}
+
         std::string gen_statement() {
             return father_->get_name();  
         }
+        
+        ArrayAccess operator[](Operation &i) {
+            ArrayAccess ret(this, &i);
+            return ret;
+        }
+    };
+
+    class ConstantVar : public Operation {
+        std::string name_;
+        public:
+        ConstantVar(std::string name) : name_(name) {}
+        ConstantVar(int i) : name_(std::to_string(i)) {}
+        
+        std::string gen_statement() {
+            return name_;  
+        }
+    };
+
+    class GpuConstant {
+        public:
+        static ConstantVar ThreadIdx_x("threadIdx.x");
+        static ConstantVar ThreadIdx_y("threadIdx.y");
+        static ConstantVar ThreadIdx_z("threadIdx.z");
+        
+        static ConstantVar BlockIdx_x("blockIdx.x");
+        static ConstantVar BlockIdx_y("blockIdx.y");
+        static ConstantVar BlockIdx_z("blockIdx.z");
+
+        static ConstantVar BlockDim_x("blockDim.x");
+        static ConstantVar BlockDim_y("blockDim.y");
+        static ConstantVar BlockDim_z("blockDim.z");
+        
+        static ConstantVar GridDim_x("gridDim.x");
+        static ConstantVar GridDim_y("gridDim.y");
+        static ConstantVar GridDim_z("gridDim.z");
+
+        static ConstantVar WrapSize(32);
+        static ConstantVar SubWrap(16);
+        static ConstantVar MinWrap(8);
     };
 
     class ArrayAccess : public Operation {
-        
+        Variable* var;
+        Operation* op;
+        public:
+        ArrayAccess(Variable* v, Operation* p) : var(v), op(p) {}
+        std::string gen_statement() {
+            return var->gen_statement() + "[" + op->gen_statement() +"]";
+        }
     }
 
     class VaribaleInit : public Statement {
@@ -229,7 +304,6 @@ namespace ftxj {
             return instr;
         }
     };
-
 
     class GpuGlobalFunction {
         
@@ -265,5 +339,43 @@ namespace ftxj {
         }
 
 
+    };
+
+    class AtomicAdd : public Statement {
+        Operation* addr_;
+        Operation* val_;
+        public:
+        AtomicAdd(Operation* addr, Operation* val) : addr_(addr), val_(val) {
+
+        }
+        std::string gen_statement() {
+            std::string instr;
+            instr += "atomicAdd(" + addr_.gen_statement() + ", " + val_.gen_statement() + ")";
+        }
+
+    };
+
+    class IfScope : public Statement {
+        Operation* val_;
+        public:
+        IfScope(Operation* val) : val_(val){}
+        std::string gen_statement() {
+            std::string instr;
+            instr += "if(" + val_->gen_statement() + ")" + "{";
+            return instr;
+        }
+    };
+
+    class GroupScope : public Statement {
+        int group_id_;
+        int block_id_;
+        public:
+        GroupScope(int block_id, int group_id) : block_id_(block_id), group_id_(group_id) {}
+        std::stride emit_statement() {
+            std::string instr;
+            instr += "if(groupId == " + std::to_string(group_id) + "){\n";
+            instr += "asm(//" + "B" + std::to_string(block_id) + "G" + std::to_string(group_id) + ")";
+            return instr;
+        }
     };
 }

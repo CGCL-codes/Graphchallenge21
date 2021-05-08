@@ -46,20 +46,35 @@ void generate_20champion_code {
 
     GpuGlobalFunction dummy_kernel("dummy_kernel", param_list_, 1024, 1);
     dummy_kernel.emit_statement();
-    ScopeEnd dummy_kernel_end;
 
-    VariableArrayDecl shared
+    VariableDecl shared(f32, "shared", Shared, false);
+    shared.set_extern();
 
-    dummy_kernel_end.emit_statement();
+    VariableArrayDecl shared_array(shared, {});
+    shared_array.emit_statement();
 
-    VariableDecl wind();
-    
-    ConstantVar WARPSIZE();
-    ConstantVar ThreadIdx_x();
-
+    VariableDecl wind(i32, "wind", Reg, false);
+    ConstantVar WARPSIZE("WARPSIZE");
+    ConstantVar ThreadIdx_x("threadIdx.x");
     Operation tmp = ThreadIdx_x % WARPSIZE;    
+    VaribaleInit wind_init_statement(wind, tmp);
+    wind_init_statement.emit_statement();
 
-    VaribaleInit wind_init(wind, tmp);
 
-    buffdispl[ThreadIdx_x];
+    ArrayAccess line95_1 = buffdispl[ThreadIdx_x];
+    ArrayAccess line95_2 = buffdispl[ThreadIdx_x + 1];
+    ConstantVar ConstOne(1);
+    VariableDecl iter_var_1(i32, "buff", Global, false);
+    Variable iter_var(iter_var_1);
+    ForLoopScope forloop_1(line95_1, line95_2, ConstOne, iter_var);
+    forloop_1.emit_statement();
+
+
+
+    ScopeEnd forloop_1_end;
+    forloop_1_end.emit_statement();
+
+
+    ScopeEnd dummy_kernel_end;
+    dummy_kernel_end.emit_statement();
 }

@@ -68,76 +68,8 @@ namespace ftxj {
         Variable sparse_matrix_block_mem;
         Variable output_matrix_block_mem;
 
-        
-        
-        const std::string threadIdx_x = "threadIdx.x";
-        const std::string blockIdx_x = "blockIdx.x";
-        const std::string blockDim_x = "blockDim.x";
-        const std::string groupIdx = "groupIdx";
-        
-
-        Variable emit_reg_variable_declare_statement(std::string &name, std::string type) {
-            std::string instr;
-            instr += "register " + type + " " + name + " = 0";
-            code.push_code(instr);
-            Variable tmp;
-            return tmp;
-        }
-
-        std::string gen_bianry_op(std::string &left, std::string &right, std::string &op) {
-            return left + " " + op + " " + right;
-        }
-
-        std::string gen_fma(std::string &res, std::string &left, std::string &right) {
-            return res + " += " + left + " * " + right;
-        }
-
-        std::string gen_memory_access(std::string name, int bias) {
-            return name + "[" + std::to_string(bias) + "]";
-        }
-        
-        std::string gen_memory_access(std::string name, std::string bias) {
-            return name + "[" + bias + "]";
-        }
-
-        std::string gen_assign(std::string &left, std::string &right) {
-            return left + "=" + right;
-        }
-
-        void emit_for_loop_begin(std::string expr_1, std::string expr_2, std::string expr_3, std::string iter_var = "i") {
-            std::string instr;
-            instr += "for(int " + iter_var + " = " + expr_1 + "; ";
-            instr += "i < " + expr_2 + "; "
-            instr += "i += " + expr_3 + ") {";
-            code.push_code(instr);
-        }
-
-        void emit_global_function(std::string func_name, )
-
-        void emit_for_loop_end() {
-            std::string instr;
-            instr += "}";
-            code.push_code(instr);
-        }
-
-        void emit_if_statement_begin(std::string &expr1, std::string &expr2, CmpOp &op) {
-            std::string instr;
-            instr += "if(" + expr1 + CmpOp2String[op] + expr2 + "){";
-            code.push_code(instr);
-        }
-
-        void emit_if_statement_end(std::string &expr1, std::string &expr2, CmpOp &op) {
-            std::string instr;
-            instr += "}";
-            code.push_code(instr);
-        }
-
     public:
-        void emit_inline_asm(std::string &asm_code) {
-            std::string instr;
-            instr += "asm(" + asm_code + ")";
-            code.push_code(instr);
-        }
+
 
         void emit_inline_asm_note(std::string &note) {
             std::string instr;
@@ -178,26 +110,6 @@ namespace ftxj {
             auto reg_access = emit_memory_access(reg_array.get_name(), bias);
 
             emit_for_loop_end(code);
-        }
-
-        void emit_block_start_control(int block_id) {
-            emit_if_statement_begin(blockIdx_x, std::to_string(block_id), Equal);
-        }
-
-        void emit_block_end_control() {
-            emit_if_statement_end();
-        }
-
-        void emit_group_start_control(int block_id, int group_id) {
-            std::string notes = "B" + std::to_string(block_id) + "G" + std::to_string(group_id);
-            emit_inline_asm_note(notes);
-            emit_if_statement_begin(groupIdx, std::to_string(group_id), Equal);
-        }
-
-        void emit_group_end_control() {
-            std::string notes = "END";
-            emit_inline_asm_note(notes);
-            emit_if_statement_end();
         }
 
         void emit_feature_axis_parallel_row_line_unroll(int block_id, int group_id, RowLineBlock &row_line_block) {
