@@ -113,6 +113,12 @@ namespace ftxj {
         std::vector<ConstantVar> dim_len_;
         public:
 
+        VariableArrayDecl(VariableType type, std::string name, VariableSpace space, bool is_p, std::vector<ConstantVar> &dim_len) {
+            var = new VariableDecl(type, name, space,is_p);
+            dim_len_ = dim_len;
+        }
+
+
         VariableArrayDecl(VariableDecl *v, std::vector<ConstantVar> &dim_len) 
             : var(v), dim_len_(dim_len)  
         {
@@ -131,6 +137,23 @@ namespace ftxj {
             return instr;
         }
     };
+
+    class VariableArrayInit : public Statement {
+        VariableArrayDecl* array_decl_;
+        ConstantVar* value;
+        public:
+        VariableArrayInit(VariableArrayDecl* array_decl, ConstantVar* var) : 
+            array_decl_(array_decl), value(var) {
+
+        }
+
+        std::string gen_statement() {
+            std::string insrt;
+            instr += array_decl_->gen_statement();
+            instr += "= {" + var->gen_statement() + "}";
+            return instr;
+        }
+    }
 
     class ForLoopScope : public Statement {
         Statement* expr1;
@@ -375,6 +398,17 @@ namespace ftxj {
             std::string instr;
             instr += "if(groupId == " + std::to_string(group_id) + "){\n";
             instr += "asm(//" + "B" + std::to_string(block_id) + "G" + std::to_string(group_id) + ")";
+            return instr;
+        }
+    };
+
+    class BlockScope : public Statement {
+        int block_id_;
+        public:
+        BlockScope(int block_id) : block_id_(block_id) {}
+        std::stride emit_statement() {
+            std::string instr;
+            instr += "if(blockIdx.x == " + std::to_string(block_id_) + "){\n";
             return instr;
         }
     };

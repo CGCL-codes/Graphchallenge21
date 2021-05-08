@@ -45,6 +45,10 @@ namespace ftxj {
         }
     };
 
+    class RandomBlock : public MatrixBlockBase {
+
+    };
+
     class LineBlock : public MatrixBlockBase {
         std::vector<SparseDataType> data_;
         virtual void allocate_data() = 0;

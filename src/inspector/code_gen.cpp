@@ -78,3 +78,32 @@ void generate_20champion_code {
     ScopeEnd dummy_kernel_end;
     dummy_kernel_end.emit_statement();
 }
+
+
+void generate_ramdom_block_code(Schedule &block_schedule) {
+    VariableArrayDecl output_tile(f32, "output_tile", Reg, false, {8});
+    ConstantVar floatZero(0.0);
+
+    VariableArrayInit output_tile_init(&output_tile, floatZero);
+    output_tile_init.emit_statement();
+    
+    VariableDecl dense_tile(f32, "dense_value", Reg, false);
+    VaribaleInit dense_tile_init(dense_tile, floatZero);
+
+    for(int b = 0; b < blockSize; ++b) {
+        BlockScope block_scope(b);
+        block_scope.emit_statement();
+        for(int t = 0; t < threadSize; ++t) {
+            MatrixBlockBase* base_block = block_schedule.get_block(b, t);
+            if(base_block->get_block_type() == "Random") {
+
+            }
+            else if() {
+
+            }
+        }
+        ScopeEnd block_scope_end;
+        block_scope_end.emit_statement();
+    }
+
+}
