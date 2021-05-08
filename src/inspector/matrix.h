@@ -155,7 +155,7 @@ namespace ftxj {
             int idx_;
             int row_idx_;
         public:
-            RowIterator(int row_idx) : row_idx_(row_idx), idx_(0) {
+            RowIterator(int row_idx, int idx) : row_idx_(row_idx), idx_(idx) {
             
             }
             
@@ -206,6 +206,48 @@ namespace ftxj {
                 return *this;
             }
         };
+
+
+        RowIterator row_iter_begin_at(int row, int col) {
+            RowIterator iter(row, 0);
+            for(; iter != row_iter_end_at(row); ++iter) {
+                if((*iter).col == col) {
+                    return iter;
+                }
+            }
+            return row_iter_end_at(row);
+        }
+
+        RowIterator row_iter_begin_at(int row) {
+            return RowIterator iter(row, 0);
+        }
+
+        RowIterator row_iter_end_at(int row) {
+            int len = csr_len_[row + 1] - csr_len_[row];
+            return RowIterator iter(row, len);
+        }
+
+
+        ColIterator col_iter_begin_at(int row, int col) {
+            ColIterator iter(col, 0);
+            for(; iter != col_iter_end_at(col); ++iter) {
+                if((*iter).row == row) {
+                    return iter;
+                }
+            }
+            return col_iter_end_at(col);
+        }
+
+        ColIterator col_iter_begin_at(int col) {
+            return ColIterator iter(col, 0);
+        }
+
+        ColIterator col_iter_end_at(int col) {
+            int len = csc_len_[col + 1] - csc_len_[col];
+            return ColIterator iter(col, len);
+        }
+
+
 
         CSRCSCMatrix(std::string &filename, int begin_node_idx, FileType type = COO_FILE) {
             switch(type) {

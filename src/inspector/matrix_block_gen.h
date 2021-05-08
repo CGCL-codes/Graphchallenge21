@@ -29,17 +29,74 @@ namespace ftxj {
 
     class SparseMatrixBlockGen {
         String file_path;
-        bool col_line_block_judge();        
-        bool row_line_block_judge();        
-        bool col_stride_block_judge();        
-        bool row_stride_block_judge();        
-        bool rectangels_block_judge();
-        bool pad_rectangels_judge();
-        bool stride_rectangels_judge();
 
-        SparseMatrixBlock gen_one_block(MatrixPos start_pos);
-        public:
-            void block_gen();            
+        CSRCSCMatrix csr_csc;
+
+        
+        int row_line_succ_max(MatrixPos start_pos) {
+            int row_idx = start_pos.row_idx;
+            int col_idx = start_pos.col_idx;
+            int res  = 0;
+            for(auto iter = csr_csc.row_iter_begin_at(row_idx, col_idx); 
+                iter != csr_csc.row_iter_end_at(row_idx); ++iter) {
+                if((*iter).col == col_idx + res) {
+                    res++;
+                }
+                else {
+                    return res;
+                }
+            }
+            return res;
+        }
+
+
+        int col_line_succ_max(MatrixPos start_pos) {
+            int row_idx = start_pos.row_idx;
+            int col_idx = start_pos.col_idx;
+            int res  = 0;
+            for(auto iter = csr_csc.col_iter_begin_at(row_idx, col_idx); 
+                iter != csr_csc.col_iter_end_at(col_idx); ++iter) {
+                if((*iter).row == row_idx + res) {
+                    res++;
+                }
+                else {
+                    return res;
+                }
+            }
+            return res;
+        }
+
+
+        std::pair<int, int> rectangels_max(MatrixPos start_pos) {
+            int row_max = row_line_succ_max(start_pos);
+            
+            int now_max_row = 0;
+            int now_max_col = 0;
+            int now_max = 0;
+
+            int res_row = 0;
+            int res_col = 0;
+            
+            for(int i = 0; i < row_max; ++i) {
+                now_max_row = i + 1;
+                int col_max = col_line_succ_max({start_pos.row, start_pos.col + i});
+                now_max_col = std::min(col_max, now_max_col);
+                int tmp_area = now_max_col * now_max_row;
+                if(tmp_area > now_max) {
+                    now_max = tmp_area;
+                    res_row = now_max_row;
+                    res_col = now_max_col;
+                }
+            }
+            return {res_row, res_col};
+        }
+
+
+        SparseMatrixBlock gen_one_block(MatrixPos start_pos) {
+
+        }
+    public:
+        void block_gen();            
     };
 
 };
