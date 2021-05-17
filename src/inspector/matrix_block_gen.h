@@ -14,10 +14,7 @@ namespace ftxj {
         Pad_Rectangles,         // 填充少量的 0 可以变成稠密块的
         Stride_Rectangles,      // 忽略固定间隔后，是稠密块 
     };
-    struct MatrixPos{
-        int row_idx;
-        int col_idx;
-    };
+
 
     struct SparseMatrixBlock {
         int stride_;
@@ -96,7 +93,24 @@ namespace ftxj {
 
         }
     public:
-        void block_gen();            
+        SparseMatrixBlockGen(CSRCSCMatrix &matrix) : csr_csc(matrix) {
+            MatrixPos start_pos {0, 0};
+            int end_len = 0;
+            for(; start_pos.col_idx < csr_csc.col_number; ) {
+                for(; start_pos.row_idx < csr_csc.row_number; ) {
+                    auto end_pos = rectangels_max(start_pos);
+                    int tmp_len = end_pos.col_idx - start_pos.col_idx; // 多少行长
+                    if(tmp_len != end_len && end_len != 0) {
+                        std::cout << "TODO fix this bug" << std::endl;
+                        exit(-1);
+                    }
+                    end_len = tmp_len;
+                    start_pos.row_idx = end_pos.row_idx + 1;
+                }
+            }
+        }
+
+
     };
 
 };

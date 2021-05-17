@@ -81,7 +81,7 @@ namespace ftxj {
             }
         }
     public:
-        void init_block(SparseMatrix &matrix, MatrixPos &beg, MatrixPos &end) {
+        void RectangleBlock(SparseMatrix &matrix, MatrixPos &beg, MatrixPos &end) {
             allocate_data(beg, end);
             RowIterator iter = matrix.row_begin_at(beg.row_idx, beg.col_idx);
             set_data(iter, beg, end);
@@ -97,7 +97,7 @@ namespace ftxj {
             data_ = std::vector<SparseDataType>(end.row_idx - beg.row_idx, 0);
         }
     public:
-        void init_block(SparseMatrix &matrix, MatrixPos &beg, MatrixPos &end) {
+        void ColLineBlock(SparseMatrix &matrix, MatrixPos &beg, MatrixPos &end) {
             allocate_data(beg, end);
             ColIterator iter = matrix.col_begin_at(beg.row_idx, beg.col_idx);
             set_data(iter, beg, end);
@@ -121,7 +121,7 @@ namespace ftxj {
             data_ = std::vector<SparseDataType>(end.col_idx - beg.col_idx, 0);
         }
     public:
-        void init_block(SparseMatrix &matrix, MatrixPos &beg, MatrixPos &end) {
+        void RowLineBlock(SparseMatrix &matrix, MatrixPos &beg, MatrixPos &end) {
             allocate_data(beg, end);
             RowIterator iter = matrix.row_begin_at(beg.row_idx, beg.col_idx);
             set_data(iter, beg, end);

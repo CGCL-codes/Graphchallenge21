@@ -5,17 +5,12 @@
 #include <algorithm>
 #include <stdlib.h> 
 
+#include "../reorder/reorder.h"
+
+#include "type.h"
+
+
 namespace ftxj {
-
-    class MatrixElmIterator {
-    public:
-
-    };
-
-    class ColIterator {
-
-    };
-    
     class SparseMatrix {
     public:
         struct Elm {
@@ -23,24 +18,22 @@ namespace ftxj {
             int col;
             SparseDataType val;
         };
+        int row_number;
+        int col_number;
+        int nnzs;
     };
 
 
     class COOMatrix : public SparseMatrix {
         std::vector<Elm> coo_values_;
     public:
-
-        int nnzs;
-        int row_number;
-        int col_number;
-
         bool row_first;
         bool col_first;
         
         class ElmIterator {
             std::vector<Elm>::iterator iter_;
         public:
-            ElmIterator(std::vector<Elm>::iterator &iter) : iter_(iter) {
+            ElmIterator(const std::vector<Elm>::iterator &iter) : iter_(iter) {
             }
             
             ElmIterator& operator++() {
@@ -48,7 +41,7 @@ namespace ftxj {
                 return *this;
             }
             
-            bool operator !=(ElmIterator& that) const {
+            bool operator !=(const ElmIterator& that) const {
                 return iter_ != that.iter_;
             }
 
@@ -87,9 +80,9 @@ namespace ftxj {
         }
 
         COOMatrix(std::string coo_input_file, int begin_node_idx) {
-            std::ifstream input_file(filename);
+            std::ifstream input_file(coo_input_file);
             if(!input_file){
-                std::cout << "File " << filename << " does not exists.\n";
+                std::cout << "File:" << coo_input_file << " does not exists.\n";
                 exit(-1);
             }
             SparseDataType val;
@@ -102,6 +95,22 @@ namespace ftxj {
             nnzs = coo_values_.size();
             row_first = false;
             col_first = false;
+        }
+
+        void reorder(Reorder &reorder_class) {
+            for(int i = 0; i < coo_values_.size(); ++i) {
+                auto pos = reorder_class.new_pos({coo_values_[i].row, coo_values_[i].col});
+                coo_values_[i].row = pos.row_idx;
+                coo_values_[i].col = pos.col_idx;
+            }
+        }
+
+        void save_matrix(const std::string &filename) {
+            std::ofstream ofile(filename);
+            for(int i = 0; i < coo_values_.size(); ++i) {
+                ofile << coo_values_[i].row << " " << coo_values_[i].col << " " <<coo_values_[i].val << "\n";
+            }
+            ofile.close();
         }
     };
 
@@ -117,7 +126,7 @@ namespace ftxj {
             coo_matrix.to_row_first_ordered();
             int begin_row = 0;
             csr_len_.push_back(0);
-            for(auto iter = coo_matrix.begin(); iter < coo_matrix.end(); ++iter) {
+            for(auto iter = coo_matrix.begin(); iter != coo_matrix.end(); ++iter) {
                 csr_index_.push_back((*iter).col);
                 csr_values_.push_back((*iter).val);
                 if((*iter).row != begin_row) {
@@ -125,13 +134,14 @@ namespace ftxj {
                 }
             }
             csr_len_.push_back(csr_index_.size());
+            row_number = csr_len_.size() - 1;
         }
 
         void coo2csc(COOMatrix &coo_matrix) {
             coo_matrix.to_col_first_ordered();
             int begin_col = 0;
             csc_len_.push_back(0);
-            for(auto iter = coo_matrix.begin(); iter < coo_matrix.end(); ++iter) {
+            for(auto iter = coo_matrix.begin(); iter != coo_matrix.end(); ++iter) {
                 csc_index_.push_back((*iter).row);
                 csc_values_.push_back((*iter).val);
                 if((*iter).col != begin_col) {
@@ -139,6 +149,7 @@ namespace ftxj {
                 }
             }
             csc_len_.push_back(csr_index_.size());
+            row_number = csc_len_.size() - 1;
         }
 
 
@@ -154,8 +165,9 @@ namespace ftxj {
         class RowIterator {
             int idx_;
             int row_idx_;
+            CSRCSCMatrix &self_;
         public:
-            RowIterator(int row_idx, int idx) : row_idx_(row_idx), idx_(idx) {
+            RowIterator(int row_idx, int idx, CSRCSCMatrix &self) : self_(self), row_idx_(row_idx), idx_(idx) {
             
             }
             
@@ -164,12 +176,16 @@ namespace ftxj {
                 return *this;
             }
             
-            bool operator !=(RowIterator& that) const {
+            bool operator !=(const RowIterator& that) const {
                 return row_idx_ != that.row_idx_ || idx_ != that.idx_;
             }
 
             Elm operator*() const {
-                return {row_idx_, csr_index_[csr_len_[row_idx_] + idx_], csr_values_[csr_len_[row_idx_] + idx_]};
+                return {
+                    row_idx_, 
+                    self_.csr_index_[self_.csr_len_[row_idx_] + idx_], 
+                    self_.csr_values_[self_.csr_len_[row_idx_] + idx_]
+                    };
             }
 
             RowIterator& next_row() {
@@ -182,22 +198,23 @@ namespace ftxj {
         class ColIterator {
             int idx_;
             int col_idx_;
+            CSRCSCMatrix &self_;
         public:
-            ColIterator(int col_idx) : col_idx_(col_idx), idx_(0) {
+            ColIterator(int col_idx, int idx, CSRCSCMatrix &self) : col_idx_(col_idx), idx_(idx), self_(self) {
             
             }
             
-            RowIterator& operator++() {
+            ColIterator& operator++() {
                 idx_++;
                 return *this;
             }
             
-            bool operator !=(ColIterator& that) const {
+            bool operator !=(const ColIterator& that) const {
                 return col_idx_ != that.col_idx_ || idx_ != that.idx_;
             }
 
             Elm operator*() const {
-                return {csc_index_[csc_len_[col_idx_] + idx_], col_idx_, csc_values_[csc_len_[col_idx_] + idx_]};
+                return {self_.csc_index_[self_.csc_len_[col_idx_] + idx_], col_idx_, self_.csc_values_[self_.csc_len_[col_idx_] + idx_]};
             }
 
             ColIterator& next_col() {
@@ -207,9 +224,9 @@ namespace ftxj {
             }
         };
 
-
+        
         RowIterator row_iter_begin_at(int row, int col) {
-            RowIterator iter(row, 0);
+            RowIterator iter(row, 0, *this);
             for(; iter != row_iter_end_at(row); ++iter) {
                 if((*iter).col == col) {
                     return iter;
@@ -219,17 +236,19 @@ namespace ftxj {
         }
 
         RowIterator row_iter_begin_at(int row) {
-            return RowIterator iter(row, 0);
+            RowIterator iter(row, 0, *this);
+            return  iter;
         }
 
         RowIterator row_iter_end_at(int row) {
             int len = csr_len_[row + 1] - csr_len_[row];
-            return RowIterator iter(row, len);
+            RowIterator iter(row, len, *this);
+            return iter;
         }
 
 
         ColIterator col_iter_begin_at(int row, int col) {
-            ColIterator iter(col, 0);
+            ColIterator iter(col, 0, *this);
             for(; iter != col_iter_end_at(col); ++iter) {
                 if((*iter).row == row) {
                     return iter;
@@ -239,22 +258,25 @@ namespace ftxj {
         }
 
         ColIterator col_iter_begin_at(int col) {
-            return ColIterator iter(col, 0);
+            ColIterator iter(col, 0, *this);
+            return iter;
         }
 
         ColIterator col_iter_end_at(int col) {
             int len = csc_len_[col + 1] - csc_len_[col];
-            return ColIterator iter(col, len);
+            ColIterator iter(col, len, *this);
+            return iter;
         }
 
 
 
         CSRCSCMatrix(std::string &filename, int begin_node_idx, FileType type = COO_FILE) {
             switch(type) {
-            case COO_FILE:
+            case COO_FILE: {
                 COOMatrix coo(filename, begin_node_idx);
                 init_from_COO(coo);
                 break;
+            }
             case BIN_FILE:
                 break;
             }
