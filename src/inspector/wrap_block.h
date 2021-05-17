@@ -17,6 +17,8 @@ namespace ftxj {
         int input_channel_offset_;
 
         int write_dst_;
+        
+        BlockContainer blocks_;
 
     public:
 
