@@ -16,7 +16,7 @@ int main() {
 
     CSRCSCMatrix csr_csc(coo);
 
-    BlockContainer blocks;
+    BlockContainer blocks(csr_csc, SparseMatrixBlockGen::naive_method);
     
     return 0;
 }

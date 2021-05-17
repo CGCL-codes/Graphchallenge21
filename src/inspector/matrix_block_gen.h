@@ -1,8 +1,10 @@
 #pragma once
 #include <vector>
-#include "utils/string.h"
+
 #include "matrix_block.h"
-#include  "utils/matrix.h"
+
+#include "../utils/matrix.h"
+#include "../utils/string.h"
 
 namespace ftxj {
 
@@ -69,18 +71,20 @@ namespace ftxj {
     public:
 
         static std::vector<std::pair<MatrixPos, MatrixPos>> naive_method(CSRCSCMatrix &csr_csc) {
-            MatrixPos start_pos {0, 0};
-            std::vector<std::pair<MatrixPos, MatrixPos>> res;
-            int end_len = 0;
             
-            int col_each_big_block = 1;
 
+            std::vector<std::pair<MatrixPos, MatrixPos>> res;
+
+            int end_len = 0;
+            int col_each_big_block = 1;
 
             int now_lookup_col = 0;
             int now_lookup_row = 0;
 
             auto col_iter = csr_csc.col_iter_begin_at(now_lookup_row, now_lookup_col);
+
             for(; col_iter != csr_csc.col_iter_end(); col_iter = col_iter.next_ncol(col_each_big_block)) {
+
                 while(col_iter != csr_csc.col_iter_end_at(now_lookup_col)) {
                     auto row_idx = *col_iter.row;
                     auto col_idx = *col_iter.col;
@@ -93,8 +97,11 @@ namespace ftxj {
                             exit(-1);
                         }
                         col_iter += tmp_row_len; 
+                        res.push_back({{row_idx, col_idx}, end_pos})
                     }
                     else {
+                        std::cout << "TODO At least one point detected" << std::endl;
+                        exit(-1);
                         col_iter++;
                     }
                 }

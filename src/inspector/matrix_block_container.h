@@ -1,10 +1,11 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <function>
 
 #include "matrix_block.h"
 #include "matrix_block_gen.h"
-#include  "utils/matrix.h"
+#include "utils/matrix.h"
 
 namespace ftxj {
 
@@ -16,7 +17,10 @@ namespace ftxj {
         
     public:
     
-        void add_block()
+        BlockContainer(COOMatrix &matrix, std::function<std::vector<std::pair<MatrixPos, MatrixPos>>(CSRCSCMatrix &csr_csc)> func) {
+            auto pos_s = func(matrix);
+            
+        }
     };
 
 
