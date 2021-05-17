@@ -34,6 +34,14 @@ namespace ftxj {
         virtual std::string get_block_type() = 0;
     };
     
+    class BlockContainer {
+        std::vector<MatrixBlockBase> blocks_;
+        CSRCSCMatrix csr_csc;
+    public:
+    
+        void add_block()
+    };
+
     class StrideBlockBase {
         int stride_;
     public:

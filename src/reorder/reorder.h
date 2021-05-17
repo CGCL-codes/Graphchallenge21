@@ -37,13 +37,13 @@ public:
         buckets_width = max_domain / buckets_num_;
     }
 
-    MatrixPos new_pos(MatrixPos &old_pos) {
+    MatrixPos new_pos(const MatrixPos &old_pos) {
         MatrixPos n_pos = old_pos;
         if(type_ == COL_REORDER || type_ == ALL_REORDER) {
             n_pos.col_idx = hash(n_pos.col_idx);
         }
         if(type_ == ROW_REORDER || type_ == ALL_REORDER) {
-            n_pos.row_idx = hash(n_pos.col_idx);
+            n_pos.row_idx = hash(n_pos.row_idx);
         }
         return n_pos;
     }

@@ -10,7 +10,9 @@ def hashElement(v,buckets,max_range):
 num = str(1);
 neuron = str(4096);
 bucketnumber = 256;
-path='C:/Users/kls/Desktop/GraphChallenge-/SparseDeepNeuralNetwork/neuron'+neuron+'/n'+neuron+'-l'+num+'.tsv'
+
+path='../src/tmp.txt'
+
 a = []
 b = []
 file =open(path,'r')
@@ -26,4 +28,7 @@ plt.ylim(ymax=64,ymin=0)
 plt.xlabel("col")
 plt.ylabel("row")
 plt.plot(a,b,'.')
-plt.show()
+
+plt.savefig("tmp.fig")
+
+# plt.show()

@@ -209,6 +209,11 @@ namespace ftxj {
                 return *this;
             }
             
+            ColIterator& operator+=(int x) {
+                idx_ += x;
+                return *this;
+            }
+            
             bool operator !=(const ColIterator& that) const {
                 return col_idx_ != that.col_idx_ || idx_ != that.idx_;
             }
@@ -220,6 +225,12 @@ namespace ftxj {
             ColIterator& next_col() {
                 idx_ = 0;
                 col_idx_++;
+                return *this;
+            }
+            
+            ColIterator& next_ncol(int itm) {
+                idx_ = 0;
+                col_idx_ += itm;
                 return *this;
             }
         };
@@ -268,6 +279,10 @@ namespace ftxj {
             return iter;
         }
 
+        ColIterator col_iter_end() {
+            ColIterator iter(col_number - 1, 0, *this);
+            return iter;
+        }
 
 
         CSRCSCMatrix(std::string &filename, int begin_node_idx, FileType type = COO_FILE) {
@@ -281,7 +296,11 @@ namespace ftxj {
                 break;
             }
         }
-        
+
+        CSRCSCMatrix(COOMatrix &coo_matrix) {
+            init_from_COO(coo_matrix);
+        }
+
         void init_from_COO(COOMatrix &coo_matrix) {
             coo2csr(coo_matrix);
             coo2csc(coo_matrix);
