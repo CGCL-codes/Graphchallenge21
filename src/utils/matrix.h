@@ -79,7 +79,7 @@ namespace ftxj {
             col_first = false;
         }
 
-        COOMatrix(std::string coo_input_file, int begin_node_idx) {
+        COOMatrix(std::string coo_input_file, int begin_node_idx, bool T = false) {
             std::ifstream input_file(coo_input_file);
             if(!input_file){
                 std::cout << "File:" << coo_input_file << " does not exists.\n";
@@ -87,10 +87,19 @@ namespace ftxj {
             }
             SparseDataType val;
             int u, v;
-            while(input_file >> u >> v >> val) {
-                coo_values_.push_back({u - begin_node_idx, v - begin_node_idx, val});
-                row_number = std::max(row_number, u + 1 - begin_node_idx);
-                col_number = std::max(col_number, v + 1 - begin_node_idx);
+            if(T) {
+                while(input_file >> u >> v >> val) {
+                    coo_values_.push_back({u - begin_node_idx, v - begin_node_idx, val});
+                    row_number = std::max(row_number, u + 1 - begin_node_idx);
+                    col_number = std::max(col_number, v + 1 - begin_node_idx);
+                }
+            }
+            else {
+                while(input_file >> v >> u >> val) {
+                    coo_values_.push_back({u - begin_node_idx, v - begin_node_idx, val});
+                    row_number = std::max(row_number, u + 1 - begin_node_idx);
+                    col_number = std::max(col_number, v + 1 - begin_node_idx);
+                }
             }
             nnzs = coo_values_.size();
             row_first = false;
@@ -349,5 +358,182 @@ namespace ftxj {
             coo2csr(coo_matrix);
             coo2csc(coo_matrix);
         }
+    };
+
+    class UIUCMatrix : public SparseMatrix {
+        // 20 champion UIUC format
+        int blocksize = 4;
+        int neuron = 16;
+        int buffsize = 6;
+        int WRAPSIZE = 2;
+
+        // int blocksize = 256;
+        // int neuron = 1024;
+        // int buffsize = 24 *1024/sizeof(float)/12;
+        // int WRAPSIZE = 32;
+
+        std::vector<int> buffdispl;
+        std::vector<int> mapdispl;
+        std::vector<unsigned short> map;
+
+        std::vector<int> warpdispl;
+        std::vector<unsigned short> warpindex;
+        std::vector<float> warpvalue;
+    public:
+        void print_buffdispl() {
+            for(auto i : buffdispl) {
+                std::cout << i << ", ";
+            }
+            std::cout << std::endl;
+        }
+
+        void print_mapdispl() {
+            for(auto i : mapdispl) {
+                std::cout << i << ", ";
+            }
+            std::cout << std::endl;
+        }
+
+
+        void print_map() {
+            for(auto i : map) {
+                std::cout << i << ", ";
+            }
+            std::cout << std::endl;
+        }
+
+
+        void print_warpdispl() {
+            for(auto i : warpdispl) {
+                std::cout << i << ", ";
+            }
+            std::cout << std::endl;
+        }
+
+        
+        void print_warpindex() {
+            for(auto i : warpindex) {
+                std::cout << i << ", ";
+            }
+            std::cout << std::endl;
+        }
+        UIUCMatrix(CSRCSCMatrix &csr_csc) {
+            int numblocks = neuron / blocksize;
+            int numwarp = blocksize / WRAPSIZE;
+            buffdispl = std::vector<int>(numblocks + 1);
+            
+            std::vector<int> numbuff(numblocks, 0);
+            
+            buffdispl[0] = 0;
+            for(int b = 0; b < numblocks; ++b) {
+                std::vector<int> temp(neuron, 0);
+                for(int m = b * blocksize; m < (b + 1) * blocksize; ++m) {
+                    auto iter = csr_csc.row_iter_begin_at(m);
+                    for(; iter != csr_csc.row_iter_end_at(m) ; ++iter) {
+                        temp[(*iter).col]++;
+                    }
+                }
+                int footprint = 0;
+                for(int n = 0; n < neuron; n++){
+                    if(temp[n]) footprint++;
+                }
+                numbuff[b] = (footprint + buffsize - 1)/buffsize;
+            }
+            for(int b = 0; b < numblocks; b++) {
+                buffdispl[b + 1] = buffdispl[b] + numbuff[b];
+            }
+            
+            std::vector<int> warpnz(buffdispl[numblocks] * numwarp, 0);
+            std::vector<int> mapnz(buffdispl[numblocks], 0);
+
+            for(int b = 0; b < numblocks; b++) {
+                std::vector<int> temp(neuron, 0);
+                for(int m = b * blocksize; m < (b + 1) * blocksize; ++m) {
+                    auto iter = csr_csc.row_iter_begin_at(m);
+                    for(; iter != csr_csc.row_iter_end_at(m) ; ++iter) {
+                        temp[(*iter).col]++;
+                    }
+                }
+                int footprint = 0;
+                for(int n = 0; n < neuron; n++){
+                    if(temp[n]) {
+                        int buff = footprint / buffsize;
+                        mapnz[buffdispl[b] + buff]++;
+                        temp[n] = buff;
+                        footprint++;
+                    }
+                }
+                for(int buff = 0; buff < numbuff[b]; buff++) {
+                    for(int warp = 0; warp < numwarp; warp++){
+                        int tempnz[WRAPSIZE] = {0};
+                        for(int t = 0; t < WRAPSIZE; t++) {
+                            auto iter = csr_csc.row_iter_begin_at(b*blocksize+warp*WRAPSIZE+t);
+                            for(; iter != csr_csc.row_iter_end_at(b*blocksize+warp*WRAPSIZE+t); ++iter)
+                                if(temp[(*iter).col]==buff) tempnz[t]++;
+                        }
+                        int warpmax = 0;
+                        for(int t = 0; t < WRAPSIZE; t++) {
+                            if(tempnz[t]>warpmax) warpmax = tempnz[t];
+                        }
+                        warpnz[(buffdispl[b]+buff)*numwarp+warp] = warpmax;
+                    }
+                }
+            }
+
+            warpdispl = std::vector<int>(buffdispl[numblocks] * numwarp + 1);
+            warpdispl[0] = 0;
+            for(int warp = 0; warp < buffdispl[numblocks]*numwarp; warp++) {
+                warpdispl[warp+1] = warpdispl[warp] + warpnz[warp];
+            }
+            
+            warpindex = std::vector<unsigned short>(warpdispl[buffdispl[numblocks] * numwarp] * WRAPSIZE, 0);
+            warpvalue = std::vector<float>(warpdispl[buffdispl[numblocks] * numwarp] * WRAPSIZE, 0.0);
+            mapdispl = std::vector<int>(buffdispl[numblocks] + 1, 0);
+            
+            for(int buff = 0; buff < buffdispl[numblocks]; buff++) {
+                mapdispl[buff+1] = mapdispl[buff] + mapnz[buff];
+            }
+
+            map = std::vector<unsigned short>(mapdispl[buffdispl[numblocks]], 0);
+
+            mapnz = std::vector<int>(buffdispl[numblocks], 0);
+
+            for(int b = 0; b < numblocks; b++) {
+                std::vector<int> temp(neuron, 0);
+                for(int m = b * blocksize; m < (b + 1) * blocksize; ++m) {
+                    auto iter = csr_csc.row_iter_begin_at(m);
+                    for(; iter != csr_csc.row_iter_end_at(m) ; ++iter) {
+                        temp[(*iter).col]++;
+                    }
+                }
+                int footprint = 0;
+                for(int n = 0; n < neuron; n++) {
+                    if(temp[n]){
+                        int buff = footprint/buffsize;
+                        map[ mapdispl[buffdispl[b]+buff] + mapnz[buffdispl[b]+buff] ] = n;
+                        mapnz[buffdispl[b]+buff]++;
+                        temp[n] = footprint;
+                        footprint++;
+                    }
+                }
+                for(int buff = 0; buff < numbuff[b]; buff++) {
+                    for(int warp = 0; warp < numwarp; warp++){
+                        int tempnz[WRAPSIZE] = {0};
+                        for(int t = 0; t < WRAPSIZE; t++) {
+                            auto iter = csr_csc.row_iter_begin_at(b*blocksize+warp*WRAPSIZE+t);
+                            for(; iter != csr_csc.row_iter_end_at(b*blocksize+warp*WRAPSIZE+t); ++iter) {
+                                if(temp[(*iter).col] / buffsize == buff){
+                                    int ind = (warpdispl[(buffdispl[b]+buff)*numwarp+warp]+tempnz[t]) * WRAPSIZE +t;
+                                    warpindex[ind] = temp[(*iter).col] % buffsize;
+                                    warpvalue[ind] = 0.625;
+                                    tempnz[t]++;
+                                }
+                            }
+                        }
+                    }
+                }
+            }   
+        }
+
     };
 };

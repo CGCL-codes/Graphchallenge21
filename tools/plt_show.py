@@ -4,7 +4,7 @@ import numpy as np
 from scipy.sparse import coo_matrix
 
 
-num = 120
+num = 1
 neuron = 1024
 bucketnumber = 64
 tile_size = 64
