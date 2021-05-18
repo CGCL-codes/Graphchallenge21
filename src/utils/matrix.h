@@ -362,6 +362,7 @@ namespace ftxj {
 
     class UIUCMatrix : public SparseMatrix {
         // 20 champion UIUC format
+    public:
         int blocksize = 4;
         int neuron = 16;
         int buffsize = 6;
@@ -371,7 +372,6 @@ namespace ftxj {
         // int neuron = 1024;
         // int buffsize = 24 *1024/sizeof(float)/12;
         // int WRAPSIZE = 32;
-
         std::vector<int> buffdispl;
         std::vector<int> mapdispl;
         std::vector<unsigned short> map;
@@ -379,7 +379,6 @@ namespace ftxj {
         std::vector<int> warpdispl;
         std::vector<unsigned short> warpindex;
         std::vector<float> warpvalue;
-    public:
         void print_buffdispl() {
             for(auto i : buffdispl) {
                 std::cout << i << ", ";

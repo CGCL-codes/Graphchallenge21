@@ -1,27 +1,28 @@
 #include <cuda.h>
-
+#include "../gpu_runtime.h"
 
 __device__ float __ReLU(float x){
    return x<0.0?0.0:x>32.0?32.0:x;
 };
 
 #define WARPSIZE 32
+#define MINIBATCH 12
 
 __global__ void __launch_bounds__(1024,1) dummy_kernel(
-  FEATPREC *nextfeat, FEATPREC *currfeat, 
-  int buffsize, int *buffdispl, int *mapdispl, MAPPREC *map, 
-  int *displ, INDPREC *index, VALPREC *value, float bias, 
-  int neuron, int *categories, int *active
+  float *nextfeat, float *currfeat, 
+  int buffsize, int *buffdispl, int *mapdispl, unsigned short *map, 
+  int *displ, unsigned short *index, float *value, 
+  float bias, int neuron
 ){
   extern __shared__ float shared[];
-  int wind = threadIdx.x%WARPSIZE;
+  int wind = threadIdx.x % WARPSIZE;
   float reduce[MINIBATCH] = {0.0};
   for(int buff = buffdispl[blockIdx.x]; buff < buffdispl[blockIdx.x+1]; buff++){
     int mapnz = mapdispl[buff+1]-mapdispl[buff];
     for(int n = threadIdx.x; n < mapnz; n += blockDim.x){
       int ind = map[mapdispl[buff]+n];
       for(unsigned int f = 0; f < MINIBATCH; f++)
-        shared[f*buffsize+n] = currfeat[categories[blockIdx.y*MINIBATCH+f]* (unsigned int) neuron+ind];
+        shared[f*buffsize+n] = currfeat[(blockIdx.y * MINIBATCH+f) * (unsigned int) neuron+ind];
     }
     __syncthreads();
     int warp = (buff*blockDim.x+threadIdx.x)/WARPSIZE;
@@ -35,13 +36,72 @@ __global__ void __launch_bounds__(1024,1) dummy_kernel(
   }
   int m = blockIdx.x*blockDim.x+threadIdx.x;
   for(int f = 0; f < MINIBATCH; f++)
-    if(nextfeat[(blockIdx.y*MINIBATCH+f)*neuron+m]=__ReLU(reduce[f]+bias))
-      atomicAdd(active+blockIdx.y*MINIBATCH+f,1);
+    nextfeat[(blockIdx.y*MINIBATCH+f) * neuron + m] = __ReLU(reduce[f]+bias);
     
 };
 
 using namespace ftxj;
 
-void uiuc_gpu_infer(UIUCMatrix &matrix) {
+void uiuc_test_benchmark(UIUCMatrix &matrix, GpuEnv &env) {
+    float *nextfeat;
+    float *currfeat;
+
+    int buffsize = matrix.buffsize;
+    int neuron = matrix.neuron;
+
+    int *buffdispl; 
+    int *mapdispl;
+    unsigned short *map; 
+    int *displ;
+    unsigned short *index;
+    float *value; 
+    float bias = -0.3;
+    float *nextfeat, float *currfeat;
+
+
+
+    int mybatch = 1800;
+
+    std::vector<std::vector<float>> input(mybatch, std::vector<neuron, 1.0>);
+
+    Safe_Call(cudaMalloc((void**)&buffdispl, sizeof(int) * matrix.buffdispl.size()));
+    Safe_Call(cudaMemcpy(buffdispl, &matrix.buffdispl[0], sizeof(int) * matrix.buffdispl.size(), cudaMemcpyHostToDevice));
+    
+    Safe_Call(cudaMalloc((void**)&mapdispl, sizeof(int) * matrix.mapdispl.size()));
+    Safe_Call(cudaMemcpy(mapdispl, &matrix.mapdispl[0], sizeof(int) * matrix.mapdispl.size(), cudaMemcpyHostToDevice));
+
+    Safe_Call(cudaMalloc((void**)&map, sizeof(unsigned short) * matrix.map.size()));
+    Safe_Call(cudaMemcpy(map, &matrix.map[0], sizeof(unsigned short) * matrix.map.size(), cudaMemcpyHostToDevice));
+
+    Safe_Call(cudaMalloc((void**)&displ, sizeof(int) * matrix.warpdispl.size()));
+    Safe_Call(cudaMemcpy(displ, &matrix.warpdispl[0], sizeof(int) * matrix.warpdispl.size(), cudaMemcpyHostToDevice));
+
+    Safe_Call(cudaMalloc((void**)&index, sizeof(unsigned short) * matrix.warpindex.size()));
+    Safe_Call(cudaMemcpy(index, &matrix.warpindex[0], sizeof(unsigned short) * matrix.warpindex.size(), cudaMemcpyHostToDevice));
+
+    Safe_Call(cudaMalloc((void**)&value, sizeof(float) * matrix.warpvalue.size()));
+    Safe_Call(cudaMemcpy(value, &matrix.warpvalue[0], sizeof(float) * matrix.warpvalue.size(), cudaMemcpyHostToDevice));
+
+    Safe_Call(cudaMalloc((void**)&currfeat, sizeof(float) * input.size() * input[0].size()));
+    Safe_Call(cudaMemcpy(currfeat, &input[0][0], sizeof(float) * input.size() * input[0].size(), cudaMemcpyHostToDevice));
+
+    Safe_Call(cudaMalloc((void**)&nextfeat, sizeof(float) * input.size() * input[0].size()));
+    Safe_Call(cudaMemset(nextfeat, 0, sizeof(float) * input.size() * input[0].size()));
+
+
+    
+    dim3 block(matrix.blocksize);
+    dim3 grid(matrix.numblocks,(mybatch+MINIBATCH-1)/MINIBATCH);
+    // initialize active features in the batch
+
+    OR_FATAL(cudaEventRecord(kernelstart,kernelstream));
+    dummy_kernel<<<grid,block, sizeof(float) * matrix.buffsize * MINIBATCH, kernelstream>>>(
+        nextfeat, currfeat, buffsize, buffdispl, mapdispl, map, displ, index, value,
+        bias, neuron
+    );
+    OR_FATAL(cudaEventRecord(kernelstop,kernelstream));
+
+    OR_FATAL(cudaMemcpyAsync(active,active_d,sizeof(int)*mybatch,cudaMemcpyDeviceToHost,kernelstream));
+    
 
 }
