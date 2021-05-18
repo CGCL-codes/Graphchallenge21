@@ -96,6 +96,14 @@ namespace ftxj {
             row_first = false;
             col_first = false;
         }
+        
+        COOMatrix() {
+            nnzs = 0;
+            row_number = 0;
+            col_number = 0;
+            row_first = false;
+            col_first = false;
+        }
 
         void reorder(Reorder &reorder_class) {
             for(int i = 0; i < coo_values_.size(); ++i) {
@@ -176,6 +184,12 @@ namespace ftxj {
                 return *this;
             }
             
+            RowIterator& operator = (const RowIterator &t) {
+                idx_ = t.idx_;
+                row_idx_ = t.row_idx_;
+                self_ = t.self_;
+            }
+
             bool operator !=(const RowIterator& that) const {
                 return row_idx_ != that.row_idx_ || idx_ != that.idx_;
             }
@@ -202,6 +216,12 @@ namespace ftxj {
         public:
             ColIterator(int col_idx, int idx, CSRCSCMatrix &self) : col_idx_(col_idx), idx_(idx), self_(self) {
             
+            }
+
+            ColIterator& operator = (const ColIterator &t) {
+                idx_ = t.idx_;
+                col_idx_ = t.col_idx_;
+                self_ = t.self_;
             }
             
             ColIterator& operator++() {

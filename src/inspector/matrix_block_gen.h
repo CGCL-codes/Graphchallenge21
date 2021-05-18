@@ -44,7 +44,7 @@ namespace ftxj {
         }
 
 
-        static std::pair<int, int> rectangels_max(MatrixPos start_pos, CSRCSCMatrix &csr_csc) {
+        static MatrixPos rectangels_max(MatrixPos start_pos, CSRCSCMatrix &csr_csc) {
             int row_max = row_line_succ_max(start_pos, csr_csc);
             
             int now_max_row = 0;
@@ -56,7 +56,7 @@ namespace ftxj {
             
             for(int i = 0; i < row_max; ++i) {
                 now_max_row = i + 1;
-                int col_max = col_line_succ_max({start_pos.row, start_pos.col + i}, csr_csc);
+                int col_max = col_line_succ_max({start_pos.row_idx, start_pos.col_idx + i}, csr_csc);
                 now_max_col = std::min(col_max, now_max_col);
                 int tmp_area = now_max_col * now_max_row;
                 if(tmp_area > now_max) {
@@ -86,9 +86,9 @@ namespace ftxj {
             for(; col_iter != csr_csc.col_iter_end(); col_iter = col_iter.next_ncol(col_each_big_block)) {
 
                 while(col_iter != csr_csc.col_iter_end_at(now_lookup_col)) {
-                    auto row_idx = *col_iter.row;
-                    auto col_idx = *col_iter.col;
-                    auto end_pos = rectangels_max({row_idx, col_idx});
+                    auto row_idx = (*col_iter).row;
+                    auto col_idx = (*col_iter).col;
+                    auto end_pos = rectangels_max(MatrixPos(row_idx, col_idx), csr_csc);
                     int tmp_col_len = end_pos.col_idx - col_idx; // 多少行长
                     int tmp_row_len = end_pos.row_idx - row_idx; // 多少列长
                     if(tmp_col_len != 0 || tmp_row_len != 0) {
@@ -97,12 +97,11 @@ namespace ftxj {
                             exit(-1);
                         }
                         col_iter += tmp_row_len; 
-                        res.push_back({{row_idx, col_idx}, end_pos})
+                        res.push_back({MatrixPos(row_idx, col_idx), end_pos});
                     }
                     else {
                         std::cout << "TODO At least one point detected" << std::endl;
                         exit(-1);
-                        col_iter++;
                     }
                 }
             }

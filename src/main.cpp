@@ -1,6 +1,6 @@
 #include "utils/matrix.h"
 #include "inspector/header.h"
-
+#include <functional>
 
 using namespace ftxj;
 
