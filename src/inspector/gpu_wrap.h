@@ -3,7 +3,7 @@
 namespace ftxj {
     // AC = AB * BC 
     // dense = dense * sparse
-    class WrapBlock {
+    class Wrap {
     private:
         int wrap_id_;
         int block_id_;

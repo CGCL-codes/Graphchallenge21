@@ -3,7 +3,7 @@
 
 namespace ftxj {
     class WrapSchedule {
-        std::vector<WrapBlock> schedule; 
+        std::vector<Wrap> schedule; 
     public:
         WrapSchedule(BlockContainer blocks)
     };

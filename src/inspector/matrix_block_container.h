@@ -29,6 +29,11 @@ namespace ftxj {
                 std::cout << "\n";
             }
         }
+
+        BlockContainer split_by_col_index() {
+            
+        }
+
     };
 
 
