@@ -139,10 +139,11 @@ namespace ftxj {
                 csr_values_.push_back((*iter).val);
                 if((*iter).row != begin_row) {
                     csr_len_.push_back(csr_index_.size() - 1);
+                    begin_row = (*iter).row;
                 }
             }
             csr_len_.push_back(csr_index_.size());
-            row_number = csr_len_.size() - 1;
+            col_number = csr_len_.size() - 1;
         }
 
         void coo2csc(COOMatrix &coo_matrix) {
@@ -154,6 +155,7 @@ namespace ftxj {
                 csc_values_.push_back((*iter).val);
                 if((*iter).col != begin_col) {
                     csc_len_.push_back(csc_index_.size() - 1);
+                    begin_col = (*iter).col;
                 }
             }
             csc_len_.push_back(csr_index_.size());
@@ -162,7 +164,25 @@ namespace ftxj {
 
 
     public:
-        
+        void print_len() {
+            std::cout << "csr:";
+            for(int i = 0; i != row_number + 1; ++i) {
+                std::cout << csr_len_[i] << " ";
+            }
+            std::cout << std::endl;
+            std::cout << "csc:";
+            for(int i = 0; i != col_number + 1; ++i) {
+                std::cout << csc_len_[i] << " ";
+            }
+            std::cout << std::endl;
+        }
+        void print_one_row(int row) {
+            for(int i = csr_len_[row]; i != csr_len_[row + 1]; ++i) {
+                std::cout << csr_index_[i] << " ";
+            }
+            std::cout << std::endl;
+        }
+
         enum FileType {
             COO_FILE,
             CSR_FILE,
@@ -239,6 +259,10 @@ namespace ftxj {
             }
 
             Elm operator*() const {
+                if(col_idx_ >= self_.col_number) {
+                    std::cout << "de* out of memory" << std::endl;
+                    exit(-1);
+                }
                 return {self_.csc_index_[self_.csc_len_[col_idx_] + idx_], col_idx_, self_.csc_values_[self_.csc_len_[col_idx_] + idx_]};
             }
 
@@ -259,7 +283,7 @@ namespace ftxj {
         RowIterator row_iter_begin_at(int row, int col) {
             RowIterator iter(row, 0, *this);
             for(; iter != row_iter_end_at(row); ++iter) {
-                if((*iter).col == col) {
+                if((*iter).col >= col) {
                     return iter;
                 }
             }
@@ -281,7 +305,7 @@ namespace ftxj {
         ColIterator col_iter_begin_at(int row, int col) {
             ColIterator iter(col, 0, *this);
             for(; iter != col_iter_end_at(col); ++iter) {
-                if((*iter).row == row) {
+                if((*iter).row >= row) {
                     return iter;
                 }
             }
@@ -300,7 +324,7 @@ namespace ftxj {
         }
 
         ColIterator col_iter_end() {
-            ColIterator iter(col_number - 1, 0, *this);
+            ColIterator iter(col_number, 0, *this);
             return iter;
         }
 

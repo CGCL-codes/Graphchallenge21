@@ -14,13 +14,20 @@ namespace ftxj {
     
     class BlockContainer {
         std::vector<MatrixBlockBase> blocks_;
-        const CSRCSCMatrix &csr_csc;
+        CSRCSCMatrix &csr_csc;
         
     public:
     
         BlockContainer(CSRCSCMatrix &matrix, std::vector<std::pair<MatrixPos, MatrixPos>> (*func)(CSRCSCMatrix &)) 
             : csr_csc(matrix) {
-            // auto pos_s = func(csr_csc);
+            auto pos_s = func(csr_csc);
+            for(int i = 0; i < pos_s.size(); ++i) {
+                std::cout << i << ", beg = ";
+                pos_s[i].first.print();
+                std::cout << ", end = ";
+                pos_s[i].second.print();
+                std::cout << "\n";
+            }
         }
     };
 
