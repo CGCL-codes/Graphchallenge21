@@ -1,6 +1,9 @@
 #include "utils/header.h"
 #include "reorder/header.h"
 #include "inspector/header.h"
+#include "gpu_lib/header.h"
+#include "microbenchmark/header.h"
+
 
 #include <functional>
 
@@ -11,22 +14,26 @@ int main() {
     std::cout << "begin" << std::endl;
 
 
-    COOMatrix coo_test_uiuc_paper("../data/uiuc-paper-example.txt", 0, true);
+    COOMatrix coo("../data/neuron1024/n1024-l120.tsv", 1);
+    // COOMatrix coo_test_uiuc_paper("../data/uiuc-paper-example.txt", 0, true);
+
+    HashReorder hash_reorder(64, 1024);
+    coo.reorder(hash_reorder);
+    std::cout << "reorder success" << std::endl;
+
     std::cout << "coo success" << std::endl;
-    CSRCSCMatrix csr_csc(coo_test_uiuc_paper);
+    CSRCSCMatrix csr_csc(coo);
     std::cout << "csr_csc success" << std::endl;
     UIUCMatrix uiuc(csr_csc);
     std::cout << "uiuc success" << std::endl;
-    uiuc.print_buffdispl();
-    uiuc.print_mapdispl();
-    uiuc.print_map();
 
-    uiuc.print_warpdispl();
-    uiuc.print_warpindex();
     
 
 
-    // COOMatrix coo("../data/neuron1024/n1024-l120.tsv", 1);
+    GpuEnv env(0);
+    uiuc_test_benchmark(uiuc, env);
+
+
     // std::cout << "coo success" << std::endl;
 
     // coo.save_matrix("tmp1.txt");

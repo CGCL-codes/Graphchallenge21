@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include "gpu_runtime.h"
 #include <string>
+#include <map>
 
 namespace ftxj {
     class GpuEnv {
@@ -12,8 +13,13 @@ namespace ftxj {
         std::vector<cudaEvent_t> start_event;
         std::vector<cudaEvent_t> stop_event;
         std::vector<std::string> event_name;
+        std::map<std::string, int> event_map;
         
     public:
+        GpuEnv(int gpu_id, bool print_device_info = true) {
+            set_up(gpu_id, print_device_info);
+        }
+
         void set_up(int gpu_id, bool print_device_info = true) {
             Safe_Call(cudaSetDevice(gpu_id));
             if(print_device_info) {
@@ -50,6 +56,28 @@ namespace ftxj {
             Safe_Call(cudaEventCreate(&start_event[start_event.size() - 1]));
             Safe_Call(cudaEventCreate(&stop_event[stop_event.size() - 1]));
             Safe_Call(cudaStreamCreate(&streams[streams.size() - 1]));
+
+            event_map[name] = streams.size() - 1;
         }
+
+        void event_start_record(std::string name = "non") {
+            Safe_Call(cudaEventRecord(start_event[event_map[name]], streams[event_map[name]]));
+        }
+
+        void event_stop_record(std::string name = "non") {
+            Safe_Call(cudaEventRecord(stop_event[event_map[name]], streams[event_map[name]]));
+        }
+
+        float get_event_time(std::string name = "non") {
+            float res = 0.0;
+            Safe_Call(cudaStreamSynchronize(streams[event_map[name]]));
+            Safe_Call(cudaEventElapsedTime(&res, start_event[event_map[name]], stop_event[event_map[name]]));
+            return res;
+        }
+        
+        cudaStream_t get_stream(std::string name = "non") {
+            return streams[event_map[name]];
+        }
+
     };
 };

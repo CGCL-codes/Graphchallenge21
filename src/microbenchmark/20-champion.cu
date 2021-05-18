@@ -1,6 +1,7 @@
 #include <cuda.h>
-#include "../gpu_runtime.h"
-
+#include "../gpu_lib/header.h"
+#include "../utils/header.h"
+namespace ftxj {
 __device__ float __ReLU(float x){
    return x<0.0?0.0:x>32.0?32.0:x;
 };
@@ -40,8 +41,6 @@ __global__ void __launch_bounds__(1024,1) dummy_kernel(
     
 };
 
-using namespace ftxj;
-
 void uiuc_test_benchmark(UIUCMatrix &matrix, GpuEnv &env) {
     float *nextfeat;
     float *currfeat;
@@ -56,13 +55,10 @@ void uiuc_test_benchmark(UIUCMatrix &matrix, GpuEnv &env) {
     unsigned short *index;
     float *value; 
     float bias = -0.3;
-    float *nextfeat, float *currfeat;
-
-
 
     int mybatch = 1800;
 
-    std::vector<std::vector<float>> input(mybatch, std::vector<neuron, 1.0>);
+    std::vector<std::vector<float>> input(mybatch, std::vector<float>(neuron, 1.0));
 
     Safe_Call(cudaMalloc((void**)&buffdispl, sizeof(int) * matrix.buffdispl.size()));
     Safe_Call(cudaMemcpy(buffdispl, &matrix.buffdispl[0], sizeof(int) * matrix.buffdispl.size(), cudaMemcpyHostToDevice));
@@ -90,18 +86,19 @@ void uiuc_test_benchmark(UIUCMatrix &matrix, GpuEnv &env) {
 
 
     
-    dim3 block(matrix.blocksize);
-    dim3 grid(matrix.numblocks,(mybatch+MINIBATCH-1)/MINIBATCH);
-    // initialize active features in the batch
 
-    OR_FATAL(cudaEventRecord(kernelstart,kernelstream));
-    dummy_kernel<<<grid,block, sizeof(float) * matrix.buffsize * MINIBATCH, kernelstream>>>(
+    env.add_event("kernel_timer");
+    env.event_start_record("kernel_timer");
+
+    dim3 block(matrix.blocksize);
+    dim3 grid(neuron / matrix.blocksize, (mybatch+MINIBATCH-1)/MINIBATCH);
+    dummy_kernel<<<grid,block, sizeof(float) * matrix.buffsize * MINIBATCH, env.get_stream("kernel_timer")>>>(
         nextfeat, currfeat, buffsize, buffdispl, mapdispl, map, displ, index, value,
         bias, neuron
     );
-    OR_FATAL(cudaEventRecord(kernelstop,kernelstream));
 
-    OR_FATAL(cudaMemcpyAsync(active,active_d,sizeof(int)*mybatch,cudaMemcpyDeviceToHost,kernelstream));
-    
-
+    env.event_stop_record("kernel_timer");
+    float time = env.get_event_time("kernel_timer"); 
+    std::cout << "uiuc timer = " << time << std::endl;
 }
+};
