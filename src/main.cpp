@@ -31,8 +31,9 @@ int main() {
 
 
     GpuEnv env(0);
-    uiuc_test_benchmark(uiuc, env);
+    // uiuc_test_benchmark(uiuc, env);
 
+    load_data_benchmark(env);
 
     // std::cout << "coo success" << std::endl;
 
