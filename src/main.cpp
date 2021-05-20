@@ -19,9 +19,11 @@ int main() {
 
     HashReorder hash_reorder(64, 1024);
     coo.reorder(hash_reorder);
+
     std::cout << "reorder success" << std::endl;
 
     std::cout << "coo success" << std::endl;
+    
     CSRCSCMatrix csr_csc(coo);
     std::cout << "csr_csc success" << std::endl;
     UIUCMatrix uiuc(csr_csc);
