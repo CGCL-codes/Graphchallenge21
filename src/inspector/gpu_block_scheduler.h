@@ -3,6 +3,7 @@
 #include "gpu_block.h"
 #include "gpu_run_config.h"
 #include "matrix_block_container.h"
+#include <map>
 
 namespace ftxj {
     class BlockSchedule {
@@ -57,7 +58,7 @@ namespace ftxj {
         }
 
         std::vector<std::vector<int>> greedy_search(std::vector<BlockContainer> &col_container) {
-            std::map<int, bool> visit(col_container.size(), false);
+            std::vector<int> visit(col_container.size(), false);
             
             std::vector<std::vector<int>> res;
 
@@ -85,14 +86,20 @@ namespace ftxj {
             std::vector<BlockContainer> col_container = original_data_blocks_.split_by_col();
             std::vector<std::vector<int>> combs = greedy_search(col_container);
             for(int j = 0; j < combs.size(); ++j) {
-                comb = combs[j];
+                auto comb = combs[j];
                 std::vector<BlockContainer> need_merge;
                 for(int i = 0; i < comb.size(); ++i) {
                     need_merge.push_back(col_container[comb[i]]);
                 }
-                BlockContainer res_block = BlockContainer::merge(need_merge);
+                BlockContainer res_block(BlockContainer::merge(need_merge));
                 GpuBlock gpu_block(-1,  j, res_block);
                 schedule_result_.push_back(gpu_block);
+            }
+        }
+
+        void print_schedule() {
+            for(auto x : schedule_result_) {
+                x.print();
             }
         }
     };

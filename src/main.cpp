@@ -54,7 +54,7 @@ int main() {
     MaxInReuseBSchedule schedule(blocks);
     schedule.schedule();
     std::cout << "block schedule succ" << std::endl;
-
+    schedule.print_schedule();
 
     return 0;
 }
