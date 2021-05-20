@@ -3,6 +3,8 @@
 #include "gpu_block.h"
 #include "gpu_run_config.h"
 #include "matrix_block_container.h"
+#include "code_gen_basic.h"
+
 #include <map>
 
 namespace ftxj {
@@ -77,7 +79,20 @@ namespace ftxj {
             }
             return res;
         }
-        
+
+        struct Affine {
+            int slope;
+            int bias;
+        };
+
+        std::vector<Affine> affine_test() {
+            int size = schedule_result_.size();
+            int need_col = schedule_result_[0].
+            for(int i = 0; i < size; ++i) {
+
+            }
+        }
+
     public:
         MaxInReuseBSchedule(BlockContainer &all_data_blocl) : BlockSchedule(all_data_blocl) {
 
@@ -95,6 +110,11 @@ namespace ftxj {
                 GpuBlock gpu_block(-1,  j, res_block);
                 schedule_result_.push_back(gpu_block);
             }
+        }
+
+
+        std::string gen_col_block_start_address_code(Context &context) {
+
         }
 
         void print_schedule() {

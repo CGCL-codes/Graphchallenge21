@@ -412,4 +412,11 @@ namespace ftxj {
             return instr;
         }
     };
+
+    class Context {
+    public:
+        std::string get_global_A_name();
+        std::string get_global_B_name();
+        std::string get_global_C_name();
+    };
 }

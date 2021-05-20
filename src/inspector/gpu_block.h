@@ -13,6 +13,8 @@ namespace ftxj {
             block_idx_ = x;
             block_idy_ = y;
         }
+
+        std::vector<int> 
         void file_gen() {
 
         }
