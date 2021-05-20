@@ -55,6 +55,27 @@ namespace ftxj {
                 }
             }
         }
+
+        std::vector<std::vector<int>> greedy_search(std::vector<BlockContainer> &col_container) {
+            std::map<int, bool> visit(col_container.size(), false);
+            
+            std::vector<std::vector<int>> res;
+
+            for(int i = 0; i < col_container.size(); ++i) {
+                if(visit[i] == true) continue;
+                visit[i] = true;
+                res.push_back(std::vector<int>(1, i));
+                for(int j = 0; j < col_container.size(); ++j) {
+                    if(visit[j]) continue;
+                    int r = cal_reuse_time(col_container[i].access_row_idx, col_container[j].access_row_idx);
+                    if(r > 0) {
+                        visit[j] = true;
+                        res[res.size() - 1].push_back(j);
+                    }
+                }
+            }
+            return res;
+        }
         
     public:
         MaxInReuseBSchedule(BlockContainer &all_data_blocl) : BlockSchedule(all_data_blocl) {
@@ -62,8 +83,17 @@ namespace ftxj {
         }
         void schedule() {
             std::vector<BlockContainer> col_container = original_data_blocks_.split_by_col();
- 
-
+            std::vector<std::vector<int>> combs = greedy_search(col_container);
+            for(int j = 0; j < combs.size(); ++j) {
+                comb = combs[j];
+                std::vector<BlockContainer> need_merge;
+                for(int i = 0; i < comb.size(); ++i) {
+                    need_merge.push_back(col_container[comb[i]]);
+                }
+                BlockContainer res_block = BlockContainer::merge(need_merge);
+                GpuBlock gpu_block(-1,  j, res_block);
+                schedule_result_.push_back(gpu_block);
+            }
         }
     };
 };

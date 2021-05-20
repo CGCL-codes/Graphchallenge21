@@ -20,6 +20,11 @@ namespace ftxj {
         bool same_col_;
     public:
         std::vector<int> access_row_idx;
+
+        bool same_col() {
+            
+        }
+
         BlockContainer(CSRCSCMatrix &matrix, std::vector<std::pair<MatrixPos, MatrixPos>> &poss, bool same_col)
             : csr_csc(matrix) {
             pos_s = poss;
@@ -86,6 +91,22 @@ namespace ftxj {
                 return {pos_s[0].first.col_idx, pos_s[0].second.col_idx};
             }
             return {-1, -1};
+        }
+
+        static BlockContainer merge(std::vector<BlockContainer> need_merge) {
+            //check validity
+            auto addr = &(need_merge[0].csr_csc);
+            for(auto iter : need_merge) {
+                assert_msg(&(iter.csr_csc) == addr, "just same matrix block can merge");
+            }
+            std::vector<std::pair<MatrixPos, MatrixPos>> res_pos;
+            for(auto block : need_merge) {
+                for(auto pos : block.pos_s) {
+                    res_pos.push_back(pos);
+                }
+            }
+            BlockContainer res(need_merge[0].csc_csr, res_pos);
+            return res;
         }
     };
 
