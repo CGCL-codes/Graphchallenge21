@@ -26,7 +26,7 @@ __device__ float __ReLU(float x){
 __global__ void shared_memory_mm(float* A,  float* B, float* C, int* index, float bias){
 	
 	__shared__ float A_tile[BATCH_BLOCK][NNZ_PRE_COL];
-	__shared__ float B_tile[ROW_SUCC_LEN][NNZ_PRE_COL];
+	// __shared__ float B_tile[ROW_SUCC_LEN][NNZ_PRE_COL];
 	//load A
 	int group_idx = threadIdx.x / GROUPSIZE;
 	int batch_start = blockIdx.y * BATCH_BLOCK;
@@ -36,9 +36,9 @@ __global__ void shared_memory_mm(float* A,  float* B, float* C, int* index, floa
 		A_tile[i % BATCH_BLOCK][i / BATCH_BLOCK] = A[index[row_succ_start * ROW_SUCC_LEN + i / BATCH_BLOCK] * BATCH_SIZE + batch_start + i % BATCH_BLOCK];
 	}
 	//load B
-	for(int i = threadIdx.x; i < ROW_SUCC_LEN * NNZ_PRE_COL; i += blockDim.x) {
-		B_tile[i / NNZ_PRE_COL][i % NNZ_PRE_COL] = B[row_succ_start * ROW_SUCC_LEN * NNZ_PRE_COL + i];
-	}
+	// for(int i = threadIdx.x; i < ROW_SUCC_LEN * NNZ_PRE_COL; i += blockDim.x) {
+	// 	B_tile[i / NNZ_PRE_COL][i % NNZ_PRE_COL] = B[row_succ_start * ROW_SUCC_LEN * NNZ_PRE_COL + i];
+	// }
 	__syncthreads();
 
 
@@ -50,29 +50,40 @@ __global__ void shared_memory_mm(float* A,  float* B, float* C, int* index, floa
 	// 	}
 	// }
 
-	float res = bias;
-	
-	
-	int A_batch = threadIdx.x % BATCH_BLOCK;
-	int B_col = threadIdx.x /  BATCH_BLOCK;
+	register float BB[32] = {
+		0.0625, 0.0625, 0.0625, 0.0625, 
+		0.0625, 0.0625, 0.0625, 0.0625, 
+		0.0625, 0.0625, 0.0625, 0.0625, 
+		0.0625, 0.0625, 0.0625, 0.0625,
+		0.0625, 0.0625, 0.0625, 0.0625,
+		0.0625, 0.0625, 0.0625, 0.0625, 
+		0.0625, 0.0625, 0.0625, 0.0625, 
+		0.0625, 0.0625, 0.0625, 0.0625 
+	};
 
-	for(int i = 0; i < NNZ_PRE_COL; i += UNROLL) {
-		res += A_tile[A_batch][i] * B_tile[B_col][i]; // bank conflict
-		res += A_tile[A_batch][i + 1] * B_tile[B_col][i + 1]; // bank conflict
-		res += A_tile[A_batch][i + 2] * B_tile[B_col][i + 2]; // bank conflict
-		res += A_tile[A_batch][i + 3] * B_tile[B_col][i + 3]; // bank conflict
-		res += A_tile[A_batch][i + 4] * B_tile[B_col][i + 4]; // bank conflict
-		res += A_tile[A_batch][i + 5] * B_tile[B_col][i + 5]; // bank conflict
-		res += A_tile[A_batch][i + 6] * B_tile[B_col][i + 6]; // bank conflict
-		res += A_tile[A_batch][i + 7] * B_tile[B_col][i + 7]; // bank conflict
+	
+	
+	int B_col = threadIdx.x % ROW_SUCC_LEN;
+	int A_batch = (threadIdx.x /  ROW_SUCC_LEN) * BATCH_BLOCK / 4;
+
+	for(int r = 0; r < BATCH_BLOCK / 4; ++r) {
+		register float res = bias;
+		for(int i = 0; i < NNZ_PRE_COL; i += UNROLL) {
+			res += A_tile[A_batch + r][i + 0] * BB[i + 0]; // bank conflict
+			res += A_tile[A_batch + r][i + 1] * BB[i + 1]; // bank conflict
+			res += A_tile[A_batch + r][i + 2] * BB[i + 2]; // bank conflict
+			res += A_tile[A_batch + r][i + 3] * BB[i + 2]; // bank conflict
+			res += A_tile[A_batch + r][i + 4] * BB[i + 2]; // bank conflict
+			res += A_tile[A_batch + r][i + 5] * BB[i + 3]; // bank conflict
+			res += A_tile[A_batch + r][i + 6] * BB[i + 4]; // bank conflict
+			res += A_tile[A_batch + r][i + 7] * BB[i + 5]; // bank conflict
+		}
+		int res_col_idx = B_col >= 16 ? (row_succ_start * 16 + 512 + B_col - 16) : (row_succ_start * 16 + B_col);
+		// if(res_col_idx == 528 && A_batch == 0) {
+		// 	printf("(%d, %d), (%d), %f\n", blockIdx.x, blockIdx.y, threadIdx.x, res);
+		// }
+		C[res_col_idx * BATCH_SIZE + blockIdx.y * BATCH_BLOCK + A_batch + r] = __ReLU(res);
 	}
-	int res_col_idx = B_col >= 16 ? (row_succ_start * 16 + 512 + B_col - 16) : (row_succ_start * 16 + B_col);
-
-	// if(res_col_idx == 528 && A_batch == 0) {
-	// 	printf("(%d, %d), (%d), %f\n", blockIdx.x, blockIdx.y, threadIdx.x, res);
-	// }
-
-	C[res_col_idx * BATCH_SIZE + blockIdx.y * BATCH_BLOCK + A_batch] = __ReLU(res);
 };
 
 
@@ -127,7 +138,7 @@ void test_shared_memory_mm(COOMatrix& coo, std::vector<float> &val, std::vector<
 	env.add_event("naive_mm");
     env.event_start_record("naive_mm");
 
-    dim3 block(BATCH_BLOCK * ROW_SUCC_LEN);
+    dim3 block(4 * ROW_SUCC_LEN);
     dim3 grid(neuron / 32, mybatch / BATCH_BLOCK);
 
     shared_memory_mm<<<grid, block, sizeof(float) * (BATCH_BLOCK + ROW_SUCC_LEN) * NNZ_PRE_COL, env.get_stream("kernel_timer")>>>(
