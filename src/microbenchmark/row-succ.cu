@@ -1,6 +1,8 @@
 #include <cuda.h>
 #include "../gpu_lib/header.h"
 #include "../utils/header.h"
+#include <cstdio>
+
 namespace ftxj {
 
 __device__ float __ReLU(float x){
@@ -17,11 +19,12 @@ __device__ float __ReLU(float x){
 #define ROW_SUCC_LEN 32
 #define NNZ_PRE_COL 32
 #define BATCH_BLOCK 32
-#define BATCH_SIZE 1800
+#define BATCH_SIZE 1600
 
 #define UNROLL 8
 
 __global__ void shared_memory_mm(float* A,  float* B, float* C, int* index, float bias){
+	
 	__shared__ float A_tile[BATCH_BLOCK][NNZ_PRE_COL];
 	__shared__ float B_tile[ROW_SUCC_LEN][NNZ_PRE_COL];
 	//load A
@@ -30,7 +33,7 @@ __global__ void shared_memory_mm(float* A,  float* B, float* C, int* index, floa
 	int row_succ_start = blockIdx.x;
 	
 	for(int i = threadIdx.x; i < BATCH_BLOCK * NNZ_PRE_COL; i += blockDim.x) {
-		A_tile[i % BATCH_BLOCK][i / BATCH_BLOCK] = A[index[row_succ_start + i / BATCH_BLOCK] * BATCH_SIZE + batch_start + i % BATCH_BLOCK];
+		A_tile[i % BATCH_BLOCK][i / BATCH_BLOCK] = A[index[row_succ_start * ROW_SUCC_LEN + i / BATCH_BLOCK] * BATCH_SIZE + batch_start + i % BATCH_BLOCK];
 	}
 	//load B
 	for(int i = threadIdx.x; i < ROW_SUCC_LEN * NNZ_PRE_COL; i += blockDim.x) {
@@ -38,12 +41,22 @@ __global__ void shared_memory_mm(float* A,  float* B, float* C, int* index, floa
 	}
 	__syncthreads();
 
+
+	// if(threadIdx.x == 0 && blockIdx.x == 0 && blockIdx.y == 0) {
+	// 	for(int i = 0; i < ROW_SUCC_LEN; ++i) {
+	// 		for(int j = 0; j < NNZ_PRE_COL; ++j) {
+	// 			printf("%f\n", B_tile[i][j]);
+	// 		}
+	// 	}
+	// }
+
 	float res = bias;
+	
 	
 	int A_batch = threadIdx.x % BATCH_BLOCK;
 	int B_col = threadIdx.x /  BATCH_BLOCK;
 
-	for(int i = 0; i < NNZ_PRE_COL / UNROLL; i += UNROLL) {
+	for(int i = 0; i < NNZ_PRE_COL; i += UNROLL) {
 		res += A_tile[A_batch][i] * B_tile[B_col][i]; // bank conflict
 		res += A_tile[A_batch][i + 1] * B_tile[B_col][i + 1]; // bank conflict
 		res += A_tile[A_batch][i + 2] * B_tile[B_col][i + 2]; // bank conflict
@@ -53,58 +66,82 @@ __global__ void shared_memory_mm(float* A,  float* B, float* C, int* index, floa
 		res += A_tile[A_batch][i + 6] * B_tile[B_col][i + 6]; // bank conflict
 		res += A_tile[A_batch][i + 7] * B_tile[B_col][i + 7]; // bank conflict
 	}
+	int res_col_idx = B_col >= 16 ? (row_succ_start * 16 + 512 + B_col - 16) : (row_succ_start * 16 + B_col);
 
-	int res_col_idx = B_col > 16 ? row_succ_start * 16 : row_succ_start * 16 + 512;
-	
-	C[res_col_idx * BATCH_SIZE + A_batch] = __ReLU(res);
+	// if(res_col_idx == 528 && A_batch == 0) {
+	// 	printf("(%d, %d), (%d), %f\n", blockIdx.x, blockIdx.y, threadIdx.x, res);
+	// }
 
+	C[res_col_idx * BATCH_SIZE + blockIdx.y * BATCH_BLOCK + A_batch] = __ReLU(res);
 };
 
 
 
-void test_shared_memory_mm(UIUCMatrix &matrix, GpuEnv &env) {
-    float *A;
+void test_shared_memory_mm(COOMatrix& coo, std::vector<float> &val, std::vector<int> &row_access, GpuEnv &env) {
+
+	float *A;
     float *B;
 	float *C;
 	int *index;
 
 	int mybatch = BATCH_SIZE;
-	int neuron = 4096;
+	int neuron = 1024;
 
-	int bias = -0.3;
+	int bias = 0;
 
-    std::vector<std::vector<float>> input(mybatch, std::vector<float>(neuron, 1.0));
-    std::vector<std::vector<float>> W(neuron, std::vector<float>(32, 0.625));
-	std::vector<int> idx(neuron, 0);
+	float * input = (float*)malloc(sizeof(float) * neuron * mybatch);
+	memset(input, 0, sizeof(float) * neuron * mybatch);
 
-	for(int i = 0; i < neuron; ++i) {
-		idx[i] = i;
+	float * output = (float*)malloc(sizeof(float) * neuron * mybatch);
+	memset(output, 0, sizeof(float) * neuron * mybatch);
+
+	for(int i = 0; i < mybatch; ++i) {
+		for(int j = 0; j < neuron; ++j) {
+			input[i * neuron + j] = 1.0;
+		}
 	}
 
-    Safe_Call(cudaMalloc((void**)&A, sizeof(float) * input.size() * input[0].size()));
-    Safe_Call(cudaMemcpy(A, &input[0][0], sizeof(float) * input.size() * input[0].size(), cudaMemcpyHostToDevice));
+	float* W  = (float*)malloc(sizeof(float) * val.size());
+	for(int i = 0; i < val.size(); ++i) {
+		W[i] = val[i];
+	}
 
-    Safe_Call(cudaMalloc((void**)&B, sizeof(float) * W.size() * W[0].size()));
-    Safe_Call(cudaMemcpy(A, &input[0][0], sizeof(float) * W.size() * W[0].size(), cudaMemcpyHostToDevice));
+	int* access = (int*)malloc(sizeof(int) * row_access.size());
+	for(int i = 0; i < row_access.size(); ++i) {
+		access[i] = row_access[i];
+	}
 
-	Safe_Call(cudaMalloc((void**)&C, sizeof(float) * input.size() * input[0].size()));
-    Safe_Call(cudaMemset(C, 0, sizeof(float) * input.size() * input[0].size()));
 
-	Safe_Call(cudaMalloc((void**)&index, sizeof(float) * idx.size()));
-	Safe_Call(cudaMemcpy(index, &idx[0], sizeof(float) * idx.size(), cudaMemcpyHostToDevice));
+    Safe_Call(cudaMalloc((void**)&A, sizeof(float) * neuron * mybatch));
+    Safe_Call(cudaMemcpy(A, input, sizeof(float) * neuron * mybatch, cudaMemcpyHostToDevice));
 
-	env.add_event("kernel_timer");
-    env.event_start_record("kernel_timer");
+    Safe_Call(cudaMalloc((void**)&B, sizeof(float) * val.size()));
+    Safe_Call(cudaMemcpy(B, W, sizeof(float) * val.size(), cudaMemcpyHostToDevice));
 
-    dim3 block(matrix.blocksize);
+	Safe_Call(cudaMalloc((void**)&C, sizeof(float) * neuron * mybatch));
+    Safe_Call(cudaMemset(C, 0, sizeof(float) * neuron * mybatch));
+
+	Safe_Call(cudaMalloc((void**)&index, sizeof(int) * row_access.size()));
+	Safe_Call(cudaMemcpy(index, access, sizeof(int) * row_access.size(), cudaMemcpyHostToDevice));
+
+	env.add_event("naive_mm");
+    env.event_start_record("naive_mm");
+
+    dim3 block(BATCH_BLOCK * ROW_SUCC_LEN);
     dim3 grid(neuron / 32, mybatch / BATCH_BLOCK);
 
     shared_memory_mm<<<grid, block, sizeof(float) * (BATCH_BLOCK + ROW_SUCC_LEN) * NNZ_PRE_COL, env.get_stream("kernel_timer")>>>(
 		A, B, C, index, bias
 	);
 
-    env.event_stop_record("kernel_timer");
-    float time = env.get_event_time("kernel_timer"); 
+    env.event_stop_record("naive_mm");
+
+    float time = env.get_event_time("naive_mm"); 
+
+	Safe_Call(cudaMemcpy(output, C, sizeof(float) * neuron * mybatch, cudaMemcpyDeviceToHost));
+
+	CpuSpmm::run_and_cmp(coo, input, neuron, mybatch, output);
+
     std::cout << "shared mm timer = " << time << std::endl;
 	std::cout << "shared mm Flops = " << (neuron * BATCH_SIZE * 32 * 2.0) / (time / 1000.0) / 1000 / 1000 / 1000 /1000 << std::endl;
 	

@@ -13,13 +13,13 @@ bucketnumber = 256;
 
 path='../src/tmp.txt'
 
-a = []
-b = []
+col = []
+row = []
 file =open(path,'r')
 for eachline in file.readlines():
-    x=eachline.split('\t')
-    a.append(hashElement(int(x[1])-1,bucketnumber,int(neuron)))#得到列的id
-    b.append(hashElement(int(x[0])-1,bucketnumber,int(neuron)))#得到行的id
+    x = eachline.split('\t')
+    col.append(hashElement(int(x[1])-1,bucketnumber,int(neuron)))#得到列的id
+    row.append(hashElement(int(x[0])-1,bucketnumber,int(neuron)))#得到行的id
     #a.append(int(x[1])-1)#得到列的id
     #b.append(int(x[0])-1)#得到行的id
 plt.title("neuron:"+neuron+" bucket"+str(bucketnumber)+" layer:"+num)

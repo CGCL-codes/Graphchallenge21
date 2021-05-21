@@ -7,14 +7,14 @@ namespace ftxj {
     class GpuBlock {
         int block_idx_;
         int block_idy_;
-        BlockContainer blocks_;
     public:
+        BlockContainer blocks_;
         GpuBlock(int x, int y, BlockContainer blocks) : blocks_(blocks)  {
             block_idx_ = x;
             block_idy_ = y;
         }
 
-        std::vector<int> 
+        // std::vector<int> 
         void file_gen() {
 
         }

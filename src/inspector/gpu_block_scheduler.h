@@ -3,7 +3,7 @@
 #include "gpu_block.h"
 #include "gpu_run_config.h"
 #include "matrix_block_container.h"
-#include "code_gen_basic.h"
+// #include "code_gen_basic.h"
 
 #include <map>
 
@@ -85,13 +85,13 @@ namespace ftxj {
             int bias;
         };
 
-        std::vector<Affine> affine_test() {
-            int size = schedule_result_.size();
-            int need_col = schedule_result_[0].
-            for(int i = 0; i < size; ++i) {
+        // std::vector<Affine> affine_test() {
+        //     int size = schedule_result_.size();
+        //     int need_col = schedule_result_[0].
+        //     for(int i = 0; i < size; ++i) {
 
-            }
-        }
+        //     }
+        // }
 
     public:
         MaxInReuseBSchedule(BlockContainer &all_data_blocl) : BlockSchedule(all_data_blocl) {
@@ -112,10 +112,29 @@ namespace ftxj {
             }
         }
 
+        struct LineBlock {
+            std::vector<float> value;
+            std::vector<int> row_access;
+        };
 
-        std::string gen_col_block_start_address_code(Context &context) {
+        LineBlock get_data() {
+            LineBlock res;
+            for(auto x : schedule_result_) {
+                auto need_merge = x.blocks_.get_line_block_data();
+                res.value.insert(res.value.end(), need_merge.value.begin(), need_merge.value.end());
+                res.row_access.insert(res.row_access.end(), need_merge.row_access.begin(), need_merge.row_access.end());
+            }
+            return res;
+        }
+
+        void dummy_print_COO() {
+            COOMatrix res;
 
         }
+
+        // std::string gen_col_block_start_address_code(Context &context) {
+
+        // }
 
         void print_schedule() {
             for(auto x : schedule_result_) {

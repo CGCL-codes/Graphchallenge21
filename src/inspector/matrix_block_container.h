@@ -60,7 +60,28 @@ namespace ftxj {
             
         }
 
+        struct LineBlock{
+            std::vector<float> value;
+            std::vector<int> row_access;
+        };
 
+        std::vector<int> get_unique_row() {
+            std::vector<int> res;
+            for(auto x : access_unique_row_range) {
+                for(int i = 0; i <= x.second - x.first; ++i) {
+                    res.push_back(x.first + i);
+                }
+            }
+            return res;
+        }
+
+        LineBlock get_line_block_data() {
+            LineBlock lineblock;
+            lineblock.value = std::vector<float>(32 * 32, 0.0625);
+            lineblock.row_access = get_unique_row();
+            return lineblock;
+        }
+        
         void print_unique() {
             std::cout << "row = {";
             for(auto x : access_unique_row_range) {

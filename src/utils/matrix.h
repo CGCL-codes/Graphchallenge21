@@ -105,6 +105,16 @@ namespace ftxj {
             row_first = false;
             col_first = false;
         }
+
+        void add_edge(int row, int col, float val) {
+            coo_values_.push_back({row, col, val});
+            row_number = std::max(row_number, row + 1);
+            col_number = std::max(col_number, col + 1);
+            nnzs = coo_values_.size();
+            row_first = false;
+            col_first = false;
+        }
+
         
         COOMatrix() {
             nnzs = 0;
@@ -173,6 +183,23 @@ namespace ftxj {
 
 
     public:
+        void print_csr() {
+            for(int i = 0; i < csr_len_.size() - 1; ++i) {
+                int len = csr_len_[i + 1] - csr_len_[i];
+                for(int j = 0; j < len; ++j) {
+                    std::cout << csr_index_[csr_len_[i] + j] + 1 << "\t" << i + 1 << "\t" << csr_values_[csr_len_[i] + j] << "\n";
+                }
+            }
+        }
+
+        void print_csc() {
+            for(int i = 0; i < csc_len_.size() - 1; ++i) {
+                int len = csc_len_[i + 1] - csc_len_[i];
+                for(int j = 0; j < len; ++j) {
+                    std::cout << csc_index_[csc_len_[i] + j] + 1 << "\t" << i + 1 << "\t" << csc_values_[csc_len_[i] + j] << "\n";
+                }
+            }
+        }
         void print_len() {
             std::cout << "csr:";
             for(int i = 0; i != row_number + 1; ++i) {
@@ -372,6 +399,7 @@ namespace ftxj {
         int neuron = 1024;
         int buffsize = 24 *1024/sizeof(float)/12;
         int WRAPSIZE = 32;
+
         std::vector<int> buffdispl;
         std::vector<int> mapdispl;
         std::vector<unsigned short> map;
@@ -417,14 +445,14 @@ namespace ftxj {
             std::cout << std::endl;
         }
         UIUCMatrix(CSRCSCMatrix &csr_csc) {
-            int numblocks = neuron / blocksize;
-            int numwarp = blocksize / WRAPSIZE;
+            int numblocks = neuron / blocksize; // 4, 16, 4
+            int numwarp = blocksize / WRAPSIZE; // 2, 4, 2
             buffdispl = std::vector<int>(numblocks + 1);
             
             std::vector<int> numbuff(numblocks, 0);
             
             buffdispl[0] = 0;
-            for(int b = 0; b < numblocks; ++b) {
+            for(int b = 0; b < numblocks; ++b) { 
                 std::vector<int> temp(neuron, 0);
                 for(int m = b * blocksize; m < (b + 1) * blocksize; ++m) {
                     auto iter = csr_csc.row_iter_begin_at(m);
@@ -436,7 +464,7 @@ namespace ftxj {
                 for(int n = 0; n < neuron; n++){
                     if(temp[n]) footprint++;
                 }
-                numbuff[b] = (footprint + buffsize - 1)/buffsize;
+                numbuff[b] = (footprint + buffsize - 1)/buffsize; // buffsize = 6
             }
             for(int b = 0; b < numblocks; b++) {
                 buffdispl[b + 1] = buffdispl[b] + numbuff[b];
@@ -456,7 +484,7 @@ namespace ftxj {
                 int footprint = 0;
                 for(int n = 0; n < neuron; n++){
                     if(temp[n]) {
-                        int buff = footprint / buffsize;
+                        int buff = footprint / buffsize; // buffsize = 6
                         mapnz[buffdispl[b] + buff]++;
                         temp[n] = buff;
                         footprint++;
@@ -467,8 +495,9 @@ namespace ftxj {
                         int tempnz[WRAPSIZE] = {0};
                         for(int t = 0; t < WRAPSIZE; t++) {
                             auto iter = csr_csc.row_iter_begin_at(b*blocksize+warp*WRAPSIZE+t);
-                            for(; iter != csr_csc.row_iter_end_at(b*blocksize+warp*WRAPSIZE+t); ++iter)
+                            for(; iter != csr_csc.row_iter_end_at(b*blocksize+warp*WRAPSIZE+t); ++iter) {
                                 if(temp[(*iter).col]==buff) tempnz[t]++;
+                            }
                         }
                         int warpmax = 0;
                         for(int t = 0; t < WRAPSIZE; t++) {
@@ -478,6 +507,7 @@ namespace ftxj {
                     }
                 }
             }
+
 
             warpdispl = std::vector<int>(buffdispl[numblocks] * numwarp + 1);
             warpdispl[0] = 0;
@@ -524,7 +554,7 @@ namespace ftxj {
                                 if(temp[(*iter).col] / buffsize == buff){
                                     int ind = (warpdispl[(buffdispl[b]+buff)*numwarp+warp]+tempnz[t]) * WRAPSIZE +t;
                                     warpindex[ind] = temp[(*iter).col] % buffsize;
-                                    warpvalue[ind] = 0.625;
+                                    warpvalue[ind] = 0.0625;
                                     tempnz[t]++;
                                 }
                             }

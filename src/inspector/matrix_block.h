@@ -140,6 +140,16 @@ namespace ftxj {
         }
     };
 
+    // class RowLineBundle {
+    //     std::vector<RowLineBlock> data_;
+    //     std::vector<int> row_line_index;
+    //     std::vector<int> col_begins;
+    // public:
+    //     RowLineBundle(BlockContainer &container) {
+
+    //     }
+    // };
+
     // TODO implement these type
     // class StrideBlockBase {
     //     int stride_;
