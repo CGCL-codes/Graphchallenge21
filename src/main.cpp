@@ -3,7 +3,7 @@
 #include "inspector/header.h"
 #include "gpu_lib/header.h"
 #include "microbenchmark/header.h"
-
+#include "fuse/header.h"
 
 #include <functional>
 
@@ -14,11 +14,34 @@ int main() {
     std::cout << "begin" << std::endl;
 
 
-    COOMatrix coo("../data/neuron1024/n1024-l120.tsv", 1, true);
+    COOMatrix coo("../data/neuron16384/n16384-l120.tsv", 1, true);
+    // COOMatrix coo_2("../data/neuron16384/n16384-l119.tsv", 1, true);
+
+
+    // HashReorder hash_reorder_t(1024, 16384);
+    // coo.reorder(hash_reorder_t);
+    // coo_2.reorder(hash_reorder_t);
+
+    // std::vector<std::vector<int>> block_cols(16384/16);
+    // for(int b = 0; b < 16384 / 16; ++b) {
+    //     for(int j = 0; j < 16; ++j) {
+    //         block_cols[b].push_back(b * 16 + j);
+    //     }
+    // }
+
+    // FuseLayer fuse(coo, block_cols);
+
+    // fuse.print_need_access();
+
+    // fuse.fuse(coo_2);
+
+    // fuse.print_need_access();
+    // return 0;
+
     // COOMatrix coo("../data/uiuc-paper-example.txt", 0, true);
     std::cout << "coo success" << std::endl;
 
-    HashReorder hash_reorder(64, 1024);
+    HashReorder hash_reorder(1024, 16384);
     coo.reorder(hash_reorder);
     // coo.save_matrix("reorder_matrix.txt")
     std::cout << "reorder success" << std::endl;
@@ -56,10 +79,10 @@ int main() {
     GpuEnv env(0);
     
     // vector4_load_data_benchmark(env);
-    // vector4_load_data_benchmark(env);
+    naive_load_data_benchmark(env);
 
     // uiuc_test_benchmark(coo, uiuc, env);
-    test_shared_memory_mm(coo, data.value, data.row_access, env);
+    // test_shared_memory_mm(coo, data.value, data.row_access, env);
 
     return 0;
 }

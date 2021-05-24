@@ -3,13 +3,33 @@
 #include "../utils/header.h"
 namespace ftxj {
 
-#define BLOCK_LOAD (32 * 8)
+#define BLOCK_LOAD (256 * 10)
 #define VECTOR_BLOCK_LOAD (32 * 2)
 
 __global__ void naive_copy(float *nextfeat, float *currfeat){
-	int i = blockIdx.x * BLOCK_LOAD; 
+    extern __shared__ float shaed[];
+    int i = blockIdx.x * BLOCK_LOAD; 
 	for(int j = threadIdx.x; j < BLOCK_LOAD; j += blockDim.x) {
-		nextfeat[i + j] = currfeat[i + j];
+		shared[j] = currfeat[i + j];
+	}
+    __syncthreads();
+    for(int j = threadIdx.x; j < BLOCK_LOAD; j += blockDim.x) {
+        nextfeat[i + j] = shared[j] + 1;
+	}
+};
+
+
+__global__ void uiuc_copy(float *nextfeat, float *currfeat) {
+    extern __shared__ float shared[];
+
+	int i = blockIdx.x * 12 * 16384 + blockIdx.y * 256;
+
+	for(int j = threadIdx.x; j < 12 * 256; j += blockDim.x) {
+        shared[j] =  currfeat[i + j];
+	}
+	__syncthreads();
+    for(int j = threadIdx.x; j < 12 * 256; j += blockDim.x) {
+        nextfeat[i + j] = shared[j] + 1;
 	}
 };
 
@@ -61,8 +81,8 @@ void naive_load_data_benchmark(GpuEnv &env) {
     float *nextfeat;
     float *currfeat;
 
-    int mybatch = 60000;
-	int neuron = 1024;
+    int mybatch = 1800;
+	int neuron = 4096;
 
     std::vector<std::vector<float>> input(mybatch, std::vector<float>(neuron, 1.0));
 
@@ -75,10 +95,10 @@ void naive_load_data_benchmark(GpuEnv &env) {
     env.add_event("naive copy");
     env.event_start_record("naive copy");
 
-    dim3 block(64);
-    dim3 grid((mybatch * neuron) / BLOCK_LOAD);
+    dim3 block(256);
+    dim3 grid((mybatch * neuron) /BLOCK_LOAD);
 
-    naive_copy<<<grid,block, 0, env.get_stream("naive copy")>>>(
+    naive_copy<<<grid,block, BLOCK_LOAD *sizeof(float), env.get_stream("naive copy")>>>(
         nextfeat, currfeat
     );
 

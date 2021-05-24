@@ -186,8 +186,8 @@ namespace ftxj {
                 if(pos_s[i].first.col_idx != pre_col) {
                     auto tmp = std::vector<std::pair<MatrixPos, MatrixPos>>(pos_s.begin() + pre_idx, pos_s.begin() + i);
                     res.push_back(BlockContainer(csr_csc, tmp));
-                    std::cout << "-----------------------------------------------" << std::endl;
-                    res[res.size() - 1].print();
+                    // std::cout << "-----------------------------------------------" << std::endl;
+                    // res[res.size() - 1].print();
                     pre_idx = i;
                     pre_col = pos_s[i].first.col_idx;
                 }

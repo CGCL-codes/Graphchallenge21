@@ -5,10 +5,10 @@ from scipy.sparse import coo_matrix
 
 
 num = 1
-neuron = 1024
-bucketnumber = 64
+neuron = 16384
+bucketnumber = 1024
 tile_size = 64
-open_file_path='../data/neuron1024/n1024-l120.tsv'
+open_file_path='../data/neuron16384/n16384-l1.tsv'
 save_path_root = "../data_show/"
 
 

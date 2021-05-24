@@ -87,9 +87,9 @@ namespace ftxj {
                 while(col_iter != csr_csc.col_iter_end_at(now_lookup_col)) {
                     auto row_idx = (*col_iter).row;
                     auto col_idx = (*col_iter).col;
-                    std::cout << "begin at row = " << row_idx << ", col = " <<  col_idx << std::endl;
+                    // std::cout << " row = " << row_idx << ", col = " <<  col_idx << std::endl;
                     auto end_pos = rectangels_max(MatrixPos(row_idx, col_idx), csr_csc);
-                    std::cout << "end at row = " << end_pos.row_idx << ", col = " <<  end_pos.col_idx << std::endl;
+                    // std::cout << "end at row = " << end_pos.row_idx << ", col = " <<  end_pos.col_idx << std::endl;
 
                     int tmp_col_len = end_pos.col_idx - col_idx + 1; // 多少行长
                     int tmp_row_len = end_pos.row_idx - row_idx + 1; // 多少列长
