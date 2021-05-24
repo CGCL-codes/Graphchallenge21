@@ -7,7 +7,7 @@ namespace ftxj {
 #define VECTOR_BLOCK_LOAD (32 * 2)
 
 __global__ void naive_copy(float *nextfeat, float *currfeat){
-    extern __shared__ float shaed[];
+    extern __shared__ float shared[];
     int i = blockIdx.x * BLOCK_LOAD; 
 	for(int j = threadIdx.x; j < BLOCK_LOAD; j += blockDim.x) {
 		shared[j] = currfeat[i + j];
@@ -77,13 +77,9 @@ void vector4_load_data_benchmark(GpuEnv &env) {
 	std::cout << "data load and write timer = " << time2 << std::endl;
 }
 
-void naive_load_data_benchmark(GpuEnv &env) {
+void test_benchmark_succ_load_store(int mybatch, int neuron, GpuEnv &env) {
     float *nextfeat;
     float *currfeat;
-
-    int mybatch = 1800;
-	int neuron = 4096;
-
     std::vector<std::vector<float>> input(mybatch, std::vector<float>(neuron, 1.0));
 
     Safe_Call(cudaMalloc((void**)&currfeat, sizeof(float) * mybatch * neuron));
@@ -106,8 +102,8 @@ void naive_load_data_benchmark(GpuEnv &env) {
 
     float time1 = env.get_event_time("naive copy"); 
 	
-    std::cout << "naive bandwidth = " << 2 * (mybatch * (float)neuron * sizeof(float)) / (time1 / 1000) / 1024.0 / 1024.0 / 1024.0 << "GB/s" << std::endl;
+	std::cout << "Load&Store Time [Succ] = " << time1 << "ms" << std::endl;
+    std::cout << "Load&Store Bandwidth [Succ] = " << 2 * (mybatch * (float)neuron * sizeof(float)) / (time1 / 1000) / 1024.0 / 1024.0 / 1024.0 << "GB/s" << std::endl;
     
-	std::cout << "data load and write timer = " << time1 << std::endl;
 }
 };

@@ -45,18 +45,18 @@ __global__ void __launch_bounds__(1024,1) dummy_kernel(
 	int m = blockIdx.x*blockDim.x+threadIdx.x;
 
 	for(int f = 0; f < MINIBATCH; f++)
-		nextfeat[(blockIdx.y * MINIBATCH + f) * neuron + m] = __ReLU(reduce[f]+bias);
+		nextfeat[(blockIdx.y * MINIBATCH + f) * neuron + m] = (reduce[f]+bias);
     
 };
 
-void uiuc_test_benchmark(COOMatrix &coo, UIUCMatrix &matrix, GpuEnv &env) {
-    float *nextfeat;
-    float *currfeat;
-
+void test_benchmark_20_uiuc(COOMatrix &coo, UIUCMatrix &matrix, int batch, GpuEnv &env) {
     int buffsize = matrix.buffsize;
     int neuron = matrix.neuron;
+    int mybatch = batch;
 
-    int *buffdispl; 
+    float *nextfeat;
+    float *currfeat;
+    int *buffdispl;
     int *mapdispl;
     unsigned short *map; 
     int *displ;
@@ -64,10 +64,7 @@ void uiuc_test_benchmark(COOMatrix &coo, UIUCMatrix &matrix, GpuEnv &env) {
     float *value; 
     float bias = 0;
 
-    int mybatch = 1800;
-
     // std::vector<std::vector<float>> input(mybatch, std::vector<float>(neuron, 0.0));
-
 	float * input = (float*)malloc(sizeof(float) * neuron * mybatch);
 	memset(input, 0, sizeof(float) * neuron * mybatch);
 
@@ -75,9 +72,11 @@ void uiuc_test_benchmark(COOMatrix &coo, UIUCMatrix &matrix, GpuEnv &env) {
 	memset(output, 0, sizeof(float) * neuron * mybatch);
 
 
+    srand (static_cast <unsigned> (time(0)));
 	for(int i = 0; i < mybatch; ++i) {
 		for(int j = 0; j < neuron; ++j) {
-			input[i * neuron + j] = 1.0;
+            float r2 = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX/32.0));
+			input[i * neuron + j] = r2;
 		}
 	}
   
@@ -105,23 +104,23 @@ void uiuc_test_benchmark(COOMatrix &coo, UIUCMatrix &matrix, GpuEnv &env) {
     Safe_Call(cudaMalloc((void**)&nextfeat, sizeof(float) * neuron * mybatch));
     Safe_Call(cudaMemset(nextfeat, 0, sizeof(float) * neuron * mybatch));
 
-    env.add_event("kernel_timer");
-    env.event_start_record("kernel_timer");
+    env.add_event("uiuc_kernel_timer");
+    env.event_start_record("uiuc_kernel_timer");
 
     dim3 block(matrix.blocksize);
     dim3 grid(neuron / matrix.blocksize, (mybatch+MINIBATCH-1)/MINIBATCH);
-    dummy_kernel<<<grid,block, sizeof(float) * matrix.buffsize * MINIBATCH, env.get_stream("kernel_timer")>>>(
+    dummy_kernel<<<grid,block, sizeof(float) * matrix.buffsize * MINIBATCH, env.get_stream("uiuc_kernel_timer")>>>(
         nextfeat, currfeat, buffsize, buffdispl, mapdispl, map, displ, index, value,
         bias, neuron
     );
 
-    env.event_stop_record("kernel_timer");
-    float time = env.get_event_time("kernel_timer"); 
+    env.event_stop_record("uiuc_kernel_timer");
+    float time = env.get_event_time("uiuc_kernel_timer"); 
 
     Safe_Call(cudaMemcpy(output, nextfeat, sizeof(float) * neuron * mybatch, cudaMemcpyDeviceToHost));
+
+    std::cout << "Kernel Exec Time [20-uiuc] = " << time << "ms"<< std::endl;
     
 	CpuSpmm::run_and_cmp(coo, input, neuron, mybatch, output);
-
-    std::cout << "uiuc timer = " << time << std::endl;
 }
 };

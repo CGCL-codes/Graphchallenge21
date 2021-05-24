@@ -183,6 +183,20 @@ namespace ftxj {
 
 
     public:
+        void transpose() {
+            std::vector<SparseDataType> csr_values_tmp = csr_values_;
+            csr_values_ = csc_values_;
+            csc_values_ = csr_values_tmp;
+
+            std::vector<int> csr_index_tmp = csr_index_;
+            csr_index_ = csc_index_;
+            csc_index_ = csr_index_tmp;
+
+            std::vector<int> csr_len_tmp = csr_len_;
+            csr_len_ = csc_len_;
+            csc_len_ = csr_len_tmp;
+        }
+
         void print_csr() {
             for(int i = 0; i < csr_len_.size() - 1; ++i) {
                 int len = csr_len_[i + 1] - csr_len_[i];
@@ -395,8 +409,8 @@ namespace ftxj {
         // int buffsize = 6;
         // int WRAPSIZE = 2;
 
-        int blocksize = 256;
-        int neuron = 1024;
+        int blocksize;
+        int neuron;
         int buffsize = 24 *1024/sizeof(float)/12;
         int WRAPSIZE = 32;
 
@@ -444,7 +458,10 @@ namespace ftxj {
             }
             std::cout << std::endl;
         }
-        UIUCMatrix(CSRCSCMatrix &csr_csc) {
+        UIUCMatrix(CSRCSCMatrix &csr_csc, int block_size, int n) {
+            blocksize = block_size;
+            neuron = n;
+
             int numblocks = neuron / blocksize; // 4, 16, 4
             int numwarp = blocksize / WRAPSIZE; // 2, 4, 2
             buffdispl = std::vector<int>(numblocks + 1);
@@ -565,4 +582,6 @@ namespace ftxj {
         }
 
     };
+
+
 };
