@@ -9,50 +9,35 @@ __device__ inline float __ReLU(float x){
    return x<0.0?0.0:x>32.0?32.0:x;
 };
 
-#define MINIBATCH 32
+#define MINIBATCH 10
 
-__global__ void uiuc_transpose_kernel(float * __restrict__ A, float * __restrict__ B, float * __restrict__ C, int* __restrict__ index, int neuron, int batch, float bias) {
-
+__global__ void batch_parallel_16384x32succ_kernel(float * __restrict__ A, float * __restrict__ B, float * __restrict__ C, int* __restrict__ index, int neuron, int batch, float bias) {
 	extern __shared__ float shared[];
-	float reduce[MINIBATCH] = {0.0};
+	float reduce[32] = {0.0};
 
-    int groupIdx = threadIdx.x / 32;
-	int groupNum = blockDim.x / 32;
-	int lane = threadIdx.x % 32;
-
-	for(int n = threadIdx.x; n < 256 * MINIBATCH; n += blockDim.x){
-		int idx = index[blockIdx.y * 256 + n / 32];
-		shared[n] = A[idx * batch + blockIdx.x * MINIBATCH + lane];
+	for(int n = threadIdx.x; n < 32 * 32; n += blockDim.x){
+		shared[n] = B[(blockIdx.y * 32 * 32) + n];
 	}
 	__syncthreads();
-    
-	for(int r = 0; r < 32; ++r){
-		float val = B[blockIdx.y * 256 * 32 + r * 256 + threadIdx.x];
-		for(int f = 0; f < MINIBATCH; f++) {
-            // if(blockIdx.x == 0 && blockIdx.y == 0 && threadIdx.x == 0 && f == 0) {
-			// 	printf("%f * %f %d\n", shared[(threadIdx.x / 32 + r) * MINIBATCH + f], val, index[blockIdx.y * 256]);
-			// }
-			reduce[f] += shared[(threadIdx.x / 32 + r) * MINIBATCH + f] * val; // bank conflict!!
+	if((blockIdx.x * blockDim.x + threadIdx.x) >= batch) return;
+	
+	for(int r = 0; r < 32; ++r) {
+		int row_idx = index[blockIdx.y * 32 + r];
+		float val = A[row_idx * batch + blockIdx.x * blockDim.x + threadIdx.x];
+		for(int c = 0; c < 32; ++c){
+			reduce[c] += shared[r * 32 + c] * val;
 		}
 	}
-	
 	__syncthreads();
-    // if(blockIdx.x == 0 && blockIdx.y == 0 && threadIdx.x == 0) {
-	// 	printf("res = %f\n", reduce[0]);
-	// }
-
-	for(int f = 0; f < MINIBATCH; ++f){
-		shared[threadIdx.x * MINIBATCH + f] = reduce[f];
+	for(int c = 0; c < 16; ++c) {
+		C[(blockIdx.y * 16  + c) * batch + blockIdx.x * blockDim.x + threadIdx.x] = reduce[c];
 	}
-	
-	__syncthreads();
-	
-	for(int n = threadIdx.x; n < 256 * MINIBATCH; n += blockDim.x){
-		C[(blockIdx.y * 256 + n / MINIBATCH) * batch + blockIdx.x * MINIBATCH + n % MINIBATCH] = shared[(threadIdx.x / MINIBATCH) * MINIBATCH + (n % MINIBATCH)]; 
+	for(int c = 16; c < 32; ++c) {
+		C[(neuron / 2 + blockIdx.y * 16  + c - 16) * batch + blockIdx.x * blockDim.x + threadIdx.x] = reduce[c];
 	}
 }
 
-void test_benchmark_row_succ_20_uiuc_transpose(COOMatrix& coo, std::vector<float> &val, std::vector<int> &row_access, int batch, int neuron, GpuEnv &env) {
+void test_benchmark_row_succ_input_transpose_batch_parallel(COOMatrix& coo, std::vector<float> &val, std::vector<int> &row_access, int batch, int neuron, GpuEnv &env) {
 
 	float *A;
     float *B;
@@ -106,9 +91,9 @@ void test_benchmark_row_succ_20_uiuc_transpose(COOMatrix& coo, std::vector<float
 
 	int blocksize = 256;
 	dim3 block(blocksize);
-    dim3 grid(mybatch / (MINIBATCH), neuron / blocksize);
+    dim3 grid((mybatch + blocksize - 1) / blocksize,  neuron / 32);
 
-	uiuc_transpose_kernel<<<grid, block, sizeof(float) * (MINIBATCH * blocksize), env.get_stream("row-succ-20-uiuc-kernel")>>>(
+	batch_parallel_16384x32succ_kernel<<<grid, block, sizeof(float) * (32 * 32), env.get_stream("row-succ-20-uiuc-kernel")>>>(
 		A, B, C, index, neuron, batch, bias
 	);
 

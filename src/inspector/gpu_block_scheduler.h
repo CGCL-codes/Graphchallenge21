@@ -71,7 +71,7 @@ namespace ftxj {
                 for(int j = 0; j < col_container.size(); ++j) {
                     if(visit[j]) continue;
                     int r = cal_reuse_time(col_container[i].access_row_idx, col_container[j].access_row_idx);
-                    if(r > 0) {
+                    if(r == 32) {
                         visit[j] = true;
                         res[res.size() - 1].push_back(j);
                     }

@@ -11,50 +11,33 @@ __device__ inline float __ReLU(float x){
 
 #define MINIBATCH 32
 
-__global__ void uiuc_transpose_no_conflict_kernel(float * __restrict__ A, float * __restrict__ B, float * __restrict__ C, int* __restrict__ index, int neuron, int batch, float bias) {
+__global__ void rectangels_batch_parallel_kernel(float * __restrict__ A, float * __restrict__ B, float * __restrict__ C, int* __restrict__ index16x16, int neuron, int batch, float bias) {
 
 	extern __shared__ float shared[];
-	float reduce[MINIBATCH] = {0.0};
+	float reduce[16] = {0.0};
 
-    int groupIdx = threadIdx.x / 32;
-	int groupNum = blockDim.x / 32;
-	int lane = threadIdx.x % 32;
-    int data_size = neuron * batch / (gridDim.x * gridDim.y);
-	for(int n = threadIdx.x; n < 256 * MINIBATCH; n += blockDim.x){
-		// int idx = index[blockIdx.y * 256 + n / 32];
-		shared[n] = A[(blockIdx.x * gridDim.y + blockIdx.y) * data_size + n];
-        //  A[idx * batch + blockIdx.x * MINIBATCH + lane];
+	for(int n = threadIdx.x; n < 32 * 16; n += blockDim.x){
+		shared[n] = B[(blockIdx.y * 32 * 16) + n];
 	}
 	__syncthreads();
-    
-	for(int r = 0; r < 32; ++r){
-		float val = B[blockIdx.y * 256 * 32 + r * 256 + threadIdx.x];
-		for(int f = 0; f < MINIBATCH; f++) {
-            // if(blockIdx.x == 0 && blockIdx.y == 0 && threadIdx.x == 0 && f == 0) {
-			// 	printf("%f * %f %d\n", shared[(threadIdx.x / 32 + r) * MINIBATCH + f], val, index[blockIdx.y * 256]);
-			// }
-			reduce[f] += shared[f] * val;
-            // shared[(threadIdx.x / 32 + r) * MINIBATCH + f] * val; // bank conflict!!
+	
+	for(int r = 0; r < 16; ++r) {
+		int row_idx = index[blockIdx.y * 32 + r];
+		float val = A[row_idx * batch + blockIdx.x * blockDim.x + threadIdx.x];
+		for(int c = 0; c < 32; ++c){
+			reduce[c] += shared[r * 32 + c] * val;
 		}
 	}
-	
 	__syncthreads();
-    // if(blockIdx.x == 0 && blockIdx.y == 0 && threadIdx.x == 0) {
-	// 	printf("res = %f\n", reduce[0]);
-	// }
-
-	for(int f = 0; f < MINIBATCH; ++f){
-		shared[threadIdx.x * MINIBATCH + f] = reduce[f];
+	for(int c = 0; c < 16; ++c) {
+		C[(blockIdx.y * 16  + c) * batch + blockIdx.x * blockDim.x + threadIdx.x] = reduce[c];
 	}
-		
-	__syncthreads();
-	
-	for(int n = threadIdx.x; n < 256 * MINIBATCH; n += blockDim.x){
-		C[(blockIdx.y * 256 + n / MINIBATCH) * batch + blockIdx.x * MINIBATCH + n % MINIBATCH] = shared[(threadIdx.x / MINIBATCH) * MINIBATCH + (n % MINIBATCH)]; 
+	for(int c = 16; c < 32; ++c) {
+		C[(neuron / 2 + blockIdx.y * 16  + c - 16) * batch + blockIdx.x * blockDim.x + threadIdx.x] = reduce[c];
 	}
 }
 
-void test_benchmark_row_succ_20_uiuc_transpose_no_conflict(COOMatrix& coo, std::vector<float> &val, std::vector<int> &row_access, int batch, int neuron, GpuEnv &env) {
+void test_benchmark_rectangels_batch_parallel_kernel(COOMatrix& coo, std::vector<float> &val, std::vector<int> &row_access, int batch, int neuron, GpuEnv &env) {
 
 	float *A;
     float *B;
@@ -110,7 +93,7 @@ void test_benchmark_row_succ_20_uiuc_transpose_no_conflict(COOMatrix& coo, std::
 	dim3 block(blocksize);
     dim3 grid(mybatch / (MINIBATCH), neuron / blocksize);
 
-	uiuc_transpose_no_conflict_kernel<<<grid, block, sizeof(float) * (MINIBATCH * blocksize), env.get_stream("row-succ-20-uiuc-kernel")>>>(
+	uiuc_cut_kernel<<<grid, block, sizeof(float) * (MINIBATCH * blocksize), env.get_stream("row-succ-20-uiuc-kernel")>>>(
 		A, B, C, index, neuron, batch, bias
 	);
 
@@ -120,10 +103,10 @@ void test_benchmark_row_succ_20_uiuc_transpose_no_conflict(COOMatrix& coo, std::
 
 	Safe_Call(cudaMemcpy(output, C, sizeof(float) * neuron * mybatch, cudaMemcpyDeviceToHost));
 
-	std::cout << "Kernel Exec Time [20-uiuc-row-succ-transpose] = " << time <<  "ms" <<std::endl;
+	std::cout << "Kernel Exec Time [20-uiuc-row-succ] = " << time <<  "ms" <<std::endl;
 	std::cout << "Kernel Exec Flops = " << (neuron * mybatch * 32 * 2.0) / (time / 1000.0) / 1000 / 1000 / 1000 /1000 << "TFLOPS" <<std::endl;
 
-	CpuSpmm::run_and_cmp(coo, input, neuron, mybatch, output, false, false, false);
+	CpuSpmm::run_and_cmp(coo, input, neuron, mybatch, output, false, true);
 
 	
 }

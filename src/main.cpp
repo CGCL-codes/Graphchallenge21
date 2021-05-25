@@ -17,7 +17,7 @@ int main() {
     int neuron = 16384;
     int batch = 1900;
 
-    COOMatrix coo("../data/neuron16384/n16384-l120.tsv", 1, false);
+    COOMatrix coo("../data/neuron16384/n16384-l1.tsv", 1, false);
     // COOMatrix coo_2("../data/neuron16384/n16384-l119.tsv", 1, true);
     // std::cout << "read coo success" << std::endl;
 
@@ -41,10 +41,10 @@ int main() {
     CSRCSCMatrix csr_csc(coo);
     std::cout << "coo to csr_csc success" << std::endl;
 
-    UIUCMatrix uiuc(csr_csc, 256, neuron);
-    std::cout << "uiuc success" << std::endl;
+    // UIUCMatrix uiuc(csr_csc, 256, neuron);
+    // std::cout << "uiuc success" << std::endl;
 
-    GpuEnv env(0);
+    // GpuEnv env(0);
     // test_benchmark_20_uiuc(coo, uiuc,  batch, env);
 
     // uiuc_test_benchmark(coo, uiuc, env);
@@ -66,11 +66,11 @@ int main() {
 
     // test_benchmark_row_succ_20_uiuc(coo, data.value, data.row_access, batch, neuron, env);
     // test_benchmark_row_succ_20_uiuc_transpose(coo, data.value, data.row_access, batch, neuron, env);
-    test_benchmark_row_succ_20_uiuc_transpose_no_conflict(coo, data.value, data.row_access, batch, neuron, env);
+    // test_benchmark_row_succ_20_uiuc_transpose_no_conflict(coo, data.value, data.row_access, batch, neuron, env);
     
 
 
-    // schedule.print_schedule();
+    schedule.print_schedule();
 
 
     // GpuEnv env(0);
