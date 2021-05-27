@@ -104,6 +104,7 @@ void test_benchmark_20_uiuc(COOMatrix &coo, UIUCMatrix &matrix, int batch, GpuEn
     Safe_Call(cudaMalloc((void**)&nextfeat, sizeof(float) * neuron * mybatch));
     Safe_Call(cudaMemset(nextfeat, 0, sizeof(float) * neuron * mybatch));
 
+    std::cout << "begin inference..." << std::endl; 
     env.add_event("uiuc_kernel_timer");
     env.event_start_record("uiuc_kernel_timer");
 

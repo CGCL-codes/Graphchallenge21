@@ -5,11 +5,9 @@
 #include <cstdlib>
 namespace ftxj {
 
-__device__ inline float __ReLU(float x){
+__device__ inline float __ReLU(float x) {
    return x<0.0?0.0:x>32.0?32.0:x;
 };
-
-#define MINIBATCH 10
 
 __global__ void batch_parallel_16384x32succ_kernel(float * __restrict__ A, float * __restrict__ B, float * __restrict__ C, int* __restrict__ index, int neuron, int batch, float bias) {
 	extern __shared__ float shared[];

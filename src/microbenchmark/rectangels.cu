@@ -14,26 +14,35 @@ __device__ inline float __ReLU(float x){
 __global__ void rectangels_batch_parallel_kernel(float * __restrict__ A, float * __restrict__ B, float * __restrict__ C, int* __restrict__ index16x16, int neuron, int batch, float bias) {
 
 	extern __shared__ float shared[];
-	float reduce[16] = {0.0};
 
-	for(int n = threadIdx.x; n < 32 * 16; n += blockDim.x){
-		shared[n] = B[(blockIdx.y * 32 * 16) + n];
+	for(int n = threadIdx.x; n < 128 * 32; n += blockDim.x){
+		shared[n] = B[(blockIdx.y * 128 * 32) + n];
 	}
 	__syncthreads();
-	
-	for(int r = 0; r < 16; ++r) {
-		int row_idx = index[blockIdx.y * 32 + r];
-		float val = A[row_idx * batch + blockIdx.x * blockDim.x + threadIdx.x];
-		for(int c = 0; c < 32; ++c){
-			reduce[c] += shared[r * 32 + c] * val;
+
+	int start_idx = index16x16[blockIdx.y];
+	for(int f = 0; f < 256; ++f) {
+		for(int i = threadIdx.x; i < 128; i += blockDim.x) {
+			shared[i + 128 * 32] = 1.0;
+			// A[(blockIdx.x * 256 + f) * neuron + (start_idx + i) % neuron];
 		}
-	}
-	__syncthreads();
-	for(int c = 0; c < 16; ++c) {
-		C[(blockIdx.y * 16  + c) * batch + blockIdx.x * blockDim.x + threadIdx.x] = reduce[c];
-	}
-	for(int c = 16; c < 32; ++c) {
-		C[(neuron / 2 + blockIdx.y * 16  + c - 16) * batch + blockIdx.x * blockDim.x + threadIdx.x] = reduce[c];
+		__syncthreads();
+		
+		float res = 0;
+		
+		int idx_beg =  (threadIdx.x / 16) * 16;
+		
+		for(int r = 0; r < 32; ++r) {
+			res += shared[r * 128 + threadIdx.x] * shared[128 * 32 + idx_beg + r];
+			// if(blockIdx.x == 0 && blockIdx.y == 0 && threadIdx.x == 1 && f == 0) {
+			// 	printf("%f * %f\n", shared[r * 128 + threadIdx.x], shared[128 * 32 + idx_beg + r]);
+			// }
+		}
+		// if(blockIdx.x == 0 && blockIdx.y == 0 && threadIdx.x == 1 && f == 0) {
+		// 	printf("RES = %f\n", res);
+		// }
+		C[(blockIdx.x * 256 + f) * neuron + blockIdx.y * 128 + threadIdx.x] = res;
+		__syncthreads();
 	}
 }
 
@@ -49,18 +58,18 @@ void test_benchmark_rectangels_batch_parallel_kernel(COOMatrix& coo, std::vector
 	int bias = 0;
 
 	float * input = (float*)malloc(sizeof(float) * neuron * mybatch);
-	memset(input, 0, sizeof(float) * neuron * mybatch);
+	memset(input, 1.0, sizeof(float) * neuron * mybatch);
 
 	float * output = (float*)malloc(sizeof(float) * neuron * mybatch);
 	memset(output, 0, sizeof(float) * neuron * mybatch);
 
-	srand (static_cast <unsigned> (time(0)));
-	for(int i = 0; i < mybatch; ++i) {
-		for(int j = 0; j < neuron; ++j) {
-            float r2 = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX/32.0));
-			input[i * neuron + j] = r2;
-		}
-	}
+	// srand (static_cast <unsigned> (time(0)));
+	// for(int i = 0; i < mybatch; ++i) {
+	// 	for(int j = 0; j < neuron; ++j) {
+    //         float r2 = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX/32.0));
+	// 		input[i * neuron + j] = r2;
+	// 	}
+	// }
 
 
 	float* W  = (float*)malloc(sizeof(float) * val.size());
@@ -89,11 +98,11 @@ void test_benchmark_rectangels_batch_parallel_kernel(COOMatrix& coo, std::vector
 	env.add_event("row-succ-20-uiuc-kernel");
     env.event_start_record("row-succ-20-uiuc-kernel");
 
-	int blocksize = 256;
+	int blocksize = 128;
 	dim3 block(blocksize);
-    dim3 grid(mybatch / (MINIBATCH), neuron / blocksize);
+    dim3 grid(mybatch / (256), neuron / blocksize);
 
-	uiuc_cut_kernel<<<grid, block, sizeof(float) * (MINIBATCH * blocksize), env.get_stream("row-succ-20-uiuc-kernel")>>>(
+	rectangels_batch_parallel_kernel<<<grid, block, sizeof(float) * (32 * 128 + 128 + 16), env.get_stream("row-succ-20-uiuc-kernel")>>>(
 		A, B, C, index, neuron, batch, bias
 	);
 
@@ -106,7 +115,7 @@ void test_benchmark_rectangels_batch_parallel_kernel(COOMatrix& coo, std::vector
 	std::cout << "Kernel Exec Time [20-uiuc-row-succ] = " << time <<  "ms" <<std::endl;
 	std::cout << "Kernel Exec Flops = " << (neuron * mybatch * 32 * 2.0) / (time / 1000.0) / 1000 / 1000 / 1000 /1000 << "TFLOPS" <<std::endl;
 
-	CpuSpmm::run_and_cmp(coo, input, neuron, mybatch, output, false, true);
+	CpuSpmm::run_and_cmp(coo, input, neuron, mybatch, output, false, true, true);
 
 	
 }

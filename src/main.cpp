@@ -15,7 +15,7 @@ int main() {
 
 
     int neuron = 16384;
-    int batch = 1900;
+    int batch = 60000;
 
     COOMatrix coo("../data/neuron16384/n16384-l1.tsv", 1, false);
     // COOMatrix coo_2("../data/neuron16384/n16384-l119.tsv", 1, true);
@@ -44,7 +44,7 @@ int main() {
     // UIUCMatrix uiuc(csr_csc, 256, neuron);
     // std::cout << "uiuc success" << std::endl;
 
-    // GpuEnv env(0);
+    GpuEnv env(0);
     // test_benchmark_20_uiuc(coo, uiuc,  batch, env);
 
     // uiuc_test_benchmark(coo, uiuc, env);
@@ -59,18 +59,27 @@ int main() {
     std::cout << "block container success" << std::endl;
 
     MaxInReuseBSchedule schedule(blocks);
-    schedule.schedule();
+    schedule.schedule(16, 7);
     std::cout << "block schedule succ" << std::endl;
     
-    auto data = schedule.get_data();
+    auto data = schedule.get_data(neuron);
+
+    std::cout << "data size = " << data.value.size() << std::endl;
+    std::cout << "data access size = " << data.row_access.size() << std::endl;
+    
+
+    // for(int i = 0; i < data.row_access.size(); ++i) {
+    //     std::cout << data.row_access[i] << ", ";
+    // }
+    // std::cout << std::endl;
 
     // test_benchmark_row_succ_20_uiuc(coo, data.value, data.row_access, batch, neuron, env);
     // test_benchmark_row_succ_20_uiuc_transpose(coo, data.value, data.row_access, batch, neuron, env);
     // test_benchmark_row_succ_20_uiuc_transpose_no_conflict(coo, data.value, data.row_access, batch, neuron, env);
-    
+    test_benchmark_rectangels_batch_parallel_kernel(coo, data.value, data.row_access, batch, neuron, env);
 
 
-    schedule.print_schedule();
+    // schedule.print_schedule();
 
 
     // GpuEnv env(0);

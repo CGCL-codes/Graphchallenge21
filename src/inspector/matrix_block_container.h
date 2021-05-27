@@ -30,7 +30,7 @@ namespace ftxj {
             for(auto i : s) {
                 vec.push_back(i);
             }
-        }
+        }   
         
         void shrink_to_unique_value(std::vector<std::pair<int, int>> &vec) {
             auto cmp = [](const std::pair<int, int> &l, const std::pair<int, int> &r) {
@@ -60,25 +60,66 @@ namespace ftxj {
             
         }
 
+        int get_value_number() {
+            int res = 0;
+            for(int i = 0; i < pos_s.size(); ++i) {
+                int r = pos_s[i].second.row_idx - pos_s[i].first.row_idx + 1;
+                int c = pos_s[i].second.col_idx - pos_s[i].first.col_idx + 1;
+                res += r * c;
+            }
+            return res;
+        }
+
         struct LineBlock{
             std::vector<float> value;
             std::vector<int> row_access;
         };
 
+        std::pair<bool, int> access_succ_test(std::vector<int> access, int matrix_size) {
+            int begin = access[0];
+            for(int i = 1; i < access.size(); ++i) {
+                if((begin + i) % matrix_size != access[i]) {
+                    int new_begin = access[i];
+                    for(int new_i = 1; new_i < access.size(); ++new_i) {
+                        if((new_begin + new_i) % matrix_size != access[(new_i + i) % access.size()]) {
+                            std::cout << "access index succ test fail!" << std::endl;
+                            return {false, i};
+                        }
+                    }
+                    // std::cout << "access index succ test success!" << std::endl;
+                    return {true, i};
+                }
+            }
+            // std::cout << "access index succ test success!" << std::endl;
+            return {true, 0};
+        }
+
         std::vector<int> get_unique_row() {
             std::vector<int> res;
+            std::set<int> unique;
             for(auto x : access_unique_row_range) {
                 for(int i = 0; i <= x.second - x.first; ++i) {
-                    res.push_back(x.first + i);
+                    unique.insert(x.first + i);
                 }
+            }
+            for(auto i : unique) {
+                res.push_back(i);
             }
             return res;
         }
 
-        LineBlock get_line_block_data() {
+        LineBlock get_line_block_data(int matrix_size) {
             LineBlock lineblock;
-            lineblock.value = std::vector<float>(32 * 32, 0.0625);
-            lineblock.row_access = get_unique_row();
+            int size = get_value_number();
+            lineblock.value = std::vector<float>(size, 0.0625);
+            auto tmp_access = get_unique_row();
+            auto tmp = access_succ_test(tmp_access, matrix_size);
+            if(tmp.first) {
+                lineblock.row_access = std::vector<int>(1, tmp_access[tmp.second]);
+            }
+            else {
+                lineblock.row_access = tmp_access;
+            }
             return lineblock;
         }
         
@@ -178,7 +219,7 @@ namespace ftxj {
             }
         }
 
-        std::vector<BlockContainer> split_by_col() {
+        std::vector<BlockContainer> split_by_col(int merge_threshold) {
             std::vector<BlockContainer> res;
             int pre_col = 0;
             int pre_idx = 0;

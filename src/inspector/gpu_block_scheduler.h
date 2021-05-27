@@ -17,7 +17,7 @@ namespace ftxj {
     public:
         BlockSchedule(BlockContainer &all_data_blocl) : original_data_blocks_(all_data_blocl) {
         }
-        virtual void schedule() = 0; 
+        virtual void schedule(int merge_threshold, int merge_max_num) = 0; 
     };
 
 
@@ -59,7 +59,7 @@ namespace ftxj {
             }
         }
 
-        std::vector<std::vector<int>> greedy_search(std::vector<BlockContainer> &col_container) {
+        std::vector<std::vector<int>> greedy_search(std::vector<BlockContainer> &col_container, int merge_threshold, int merge_max_num) {
             std::vector<int> visit(col_container.size(), false);
             
             std::vector<std::vector<int>> res;
@@ -68,13 +68,22 @@ namespace ftxj {
                 if(visit[i] == true) continue;
                 visit[i] = true;
                 res.push_back(std::vector<int>(1, i));
+                bool merge_end = false;
                 for(int j = 0; j < col_container.size(); ++j) {
                     if(visit[j]) continue;
-                    int r = cal_reuse_time(col_container[i].access_row_idx, col_container[j].access_row_idx);
-                    if(r == 32) {
-                        visit[j] = true;
-                        res[res.size() - 1].push_back(j);
+                    for(int block = 0; block < res[res.size() - 1].size(); ++block) {
+                        int r = cal_reuse_time(col_container[res[res.size() - 1][block]].access_row_idx, col_container[j].access_row_idx);
+                        if(visit[j] || merge_end) break;
+                        if(r >= merge_threshold) {
+                            visit[j] = true;
+                            res[res.size() - 1].push_back(j);
+                            if(res[res.size() - 1].size() >= merge_max_num) {
+                                merge_end = true;
+                                break;
+                            }
+                        }
                     }
+                    if(merge_end) break;
                 }
             }
             return res;
@@ -97,9 +106,39 @@ namespace ftxj {
         MaxInReuseBSchedule(BlockContainer &all_data_blocl) : BlockSchedule(all_data_blocl) {
 
         }
-        void schedule() {
+
+        void schedule_output_parallel(int merge_threshold, int merge_max_num) {
             std::vector<BlockContainer> col_container = original_data_blocks_.split_by_col();
-            std::vector<std::vector<int>> combs = greedy_search(col_container);
+            std::vector<std::vector<int>> combs = greedy_search(col_container, merge_threshold, merge_max_num);
+            // for(int j = 0; j < combs.size(); ++j) {
+            //     std::cout << "schedule " << j << ": ";
+            //     for(int i = 0; i < combs[j].size(); ++i) {
+            //         std::cout << combs[j][i] << ", ";
+            //     }
+            //     std::cout << std::endl;
+            // }
+            for(int j = 0; j < combs.size(); ++j) {
+                auto comb = combs[j];
+                std::vector<BlockContainer> need_merge;
+                for(int i = 0; i < comb.size(); ++i) {
+                    need_merge.push_back(col_container[comb[i]]);
+                }
+                BlockContainer res_block(BlockContainer::merge(need_merge));
+                GpuBlock gpu_block(-1,  j, res_block);
+                schedule_result_.push_back(gpu_block);
+            }
+        }
+
+        void schedule(int merge_threshold, int merge_max_num) {
+            std::vector<BlockContainer> col_container = original_data_blocks_.split_by_col();
+            std::vector<std::vector<int>> combs = greedy_search(col_container, merge_threshold, merge_max_num);
+            // for(int j = 0; j < combs.size(); ++j) {
+            //     std::cout << "schedule " << j << ": ";
+            //     for(int i = 0; i < combs[j].size(); ++i) {
+            //         std::cout << combs[j][i] << ", ";
+            //     }
+            //     std::cout << std::endl;
+            // }
             for(int j = 0; j < combs.size(); ++j) {
                 auto comb = combs[j];
                 std::vector<BlockContainer> need_merge;
@@ -117,19 +156,23 @@ namespace ftxj {
             std::vector<int> row_access;
         };
 
-        LineBlock get_data() {
+        LineBlock get_data(int matrix_size) {
             LineBlock res;
             for(auto x : schedule_result_) {
-                auto need_merge = x.blocks_.get_line_block_data();
+                auto need_merge = x.blocks_.get_line_block_data(matrix_size);
                 res.value.insert(res.value.end(), need_merge.value.begin(), need_merge.value.end());
                 res.row_access.insert(res.row_access.end(), need_merge.row_access.begin(), need_merge.row_access.end());
             }
             return res;
         }
 
+        struct RectagelsBlocks {
+            std::vector<float> value;
+            std::vector<int> row_access;
+        };
+
         void dummy_print_COO() {
             COOMatrix res;
-
         }
 
         // std::string gen_col_block_start_address_code(Context &context) {
