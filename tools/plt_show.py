@@ -2,13 +2,20 @@ import matplotlib.pyplot as plt
 from numpy import fromfile
 import numpy as np
 from scipy.sparse import coo_matrix
+import sys
 
 
-num = 2
+num = sys.argv[1]
 neuron = 16384
 bucketnumber = 1024
-tile_size = 64
-open_file_path='../data/neuron16384/n16384-l2.tsv'
+tile_size_str = sys.argv[2]
+
+draw_num = sys.argv[3]
+draw_num = int(draw_num)
+
+tile_size = int(tile_size_str)
+
+open_file_path='../data/neuron16384/n16384-l'+ num + '.tsv'
 save_path_root = "../data_show/"
 
 
@@ -18,21 +25,8 @@ def hashElement(v):
     else:
         return v / bucketnumber + (v % bucketnumber) * (neuron / bucketnumber)
 
-# matrix = np.zeros((neuron, neuron))
-# file = open(open_file_path, 'r')
-# for eachline in file.readlines():
-#     x = eachline.split(' ')
-#     matrix[int(x[1])][int(x[0])] = 1
-# file_name = 'l' + str(num) + '_b' + str(bucketnumber) + '_t' + str(tile_size) + '.png'
-# plt.title(file_name)
-# plt.xlim(xmax = neuron, xmin = 0)
-# plt.ylim(ymax = 128, ymin = 0)
-# plt.xlabel("col")
-# plt.ylabel("row")
-# plt.plot(matrix)
-# save_file_path = save_path_root + 'n' + str(neuron) + "/" + "l" + str(num) + "/"
-# plt.savefig(save_file_path + "all.png")
 
+now_num = 0
 for row_block in range(0, int((neuron + tile_size - 1) / tile_size)):
     for col_block in range(0, int((neuron + tile_size - 1)/ tile_size)):
         file = open(open_file_path, 'r')
@@ -49,7 +43,7 @@ for row_block in range(0, int((neuron + tile_size - 1) / tile_size)):
         print(len(row))
         if(len(row) == 0):
             continue
-
+        now_num = now_num + 1
         file_name = 'l' + str(num) + '_b' + str(bucketnumber) + '_r' + str(row_block) + '_c' + str(col_block) + '_t' + str(tile_size) + '.png'
         save_file_path = save_path_root + 'n' + str(neuron) + "/" + "l" + str(num) + "/"
         plt.title(file_name)
@@ -59,5 +53,9 @@ for row_block in range(0, int((neuron + tile_size - 1) / tile_size)):
         plt.ylabel("col")
         plt.plot(row, col, '.')
         plt.savefig(save_file_path + file_name)
+        if(draw_num == now_num):
+            exit()
+        
+
 
 # plt.show()

@@ -13,6 +13,8 @@ enum REORDER {
 class Reorder {
 public:
     virtual MatrixPos new_pos(const MatrixPos &old_pos) = 0;
+    virtual int reorder(int r) = 0;
+
 };
 
 };

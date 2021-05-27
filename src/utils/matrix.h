@@ -258,6 +258,7 @@ namespace ftxj {
                 idx_ = t.idx_;
                 row_idx_ = t.row_idx_;
                 self_ = t.self_;
+                return *this;
             }
 
             bool operator !=(const RowIterator& that) const {
@@ -292,6 +293,7 @@ namespace ftxj {
                 idx_ = t.idx_;
                 col_idx_ = t.col_idx_;
                 self_ = t.self_;
+                return *this;
             }
             
             ColIterator& operator++() {

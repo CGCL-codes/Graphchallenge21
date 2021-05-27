@@ -26,6 +26,10 @@ namespace ftxj {
             buckets_width = max_domain / buckets_num_;
         }
 
+        int reorder(int r) {
+            return hash(r);
+        }
+
         MatrixPos new_pos(const MatrixPos &old_pos) {
             MatrixPos n_pos = old_pos;
             if(type_ == COL_REORDER || type_ == ALL_REORDER) {
