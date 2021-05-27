@@ -23,10 +23,6 @@ namespace ftxj {
 
     class MaxInReuseBSchedule : public BlockSchedule {
         int cal_reuse_time(std::vector<int> a, std::vector<int> b) {
-            if(a.size() != b.size()) {
-                std::cout << "doesnot support this kind " << std::endl;
-                exit(-1);
-            }
             int res = 0;
             int i = 0, j = 0;
             while(true) {
@@ -107,8 +103,13 @@ namespace ftxj {
 
         }
 
-        void schedule_output_parallel(int merge_threshold, int merge_max_num) {
-            std::vector<BlockContainer> col_container = original_data_blocks_.split_by_col();
+        void schedule_output_parallel(int merge_threshold, int merge_max_num, bool input128) {
+            std::vector<BlockContainer> col_container;
+            if(input128) 
+                col_container = original_data_blocks_.split_by_row(128);
+            else 
+                col_container = original_data_blocks_.split_by_col(128);
+            
             std::vector<std::vector<int>> combs = greedy_search(col_container, merge_threshold, merge_max_num);
             // for(int j = 0; j < combs.size(); ++j) {
             //     std::cout << "schedule " << j << ": ";
@@ -130,7 +131,7 @@ namespace ftxj {
         }
 
         void schedule(int merge_threshold, int merge_max_num) {
-            std::vector<BlockContainer> col_container = original_data_blocks_.split_by_col();
+            std::vector<BlockContainer> col_container = original_data_blocks_.split_by_col(1);
             std::vector<std::vector<int>> combs = greedy_search(col_container, merge_threshold, merge_max_num);
             // for(int j = 0; j < combs.size(); ++j) {
             //     std::cout << "schedule " << j << ": ";

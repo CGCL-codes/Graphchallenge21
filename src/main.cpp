@@ -17,7 +17,7 @@ int main() {
     int neuron = 16384;
     int batch = 60000;
 
-    COOMatrix coo("../data/neuron16384/n16384-l1.tsv", 1, false);
+    COOMatrix coo("../data/neuron16384/n16384-l2.tsv", 1, false);
     // COOMatrix coo_2("../data/neuron16384/n16384-l119.tsv", 1, true);
     // std::cout << "read coo success" << std::endl;
 
@@ -57,9 +57,12 @@ int main() {
     csr_csc.transpose();
     BlockContainer blocks(csr_csc, SparseMatrixBlockGen::naive_method);
     std::cout << "block container success" << std::endl;
+    // blocks.print();
 
     MaxInReuseBSchedule schedule(blocks);
-    schedule.schedule(16, 7);
+    
+    schedule.schedule_output_parallel(128, 2, false);
+
     std::cout << "block schedule succ" << std::endl;
     
     auto data = schedule.get_data(neuron);
@@ -72,6 +75,7 @@ int main() {
     //     std::cout << data.row_access[i] << ", ";
     // }
     // std::cout << std::endl;
+    // schedule.print_schedule();
 
     // test_benchmark_row_succ_20_uiuc(coo, data.value, data.row_access, batch, neuron, env);
     // test_benchmark_row_succ_20_uiuc_transpose(coo, data.value, data.row_access, batch, neuron, env);
@@ -79,7 +83,6 @@ int main() {
     test_benchmark_rectangels_batch_parallel_kernel(coo, data.value, data.row_access, batch, neuron, env);
 
 
-    // schedule.print_schedule();
 
 
     // GpuEnv env(0);

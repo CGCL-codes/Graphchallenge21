@@ -48,6 +48,15 @@ namespace ftxj {
             }
         }
 
+        void sort_by_column() {
+            auto cmp = [](const std::pair<MatrixPos, MatrixPos> &a, const std::pair<MatrixPos, MatrixPos> &b) -> bool {
+                if(a.first.col_idx == b.first.col_idx) {
+                    return a.first.row_idx < b.first.row_idx;
+                }
+                return a.first.col_idx < b.first.col_idx;
+            };
+            std::sort(pos_s.begin(), pos_s.end(), cmp);
+        }
 
     public:
         std::vector<int> access_row_idx;
@@ -219,12 +228,34 @@ namespace ftxj {
             }
         }
 
+
+        std::vector<BlockContainer> split_by_row(int merge_threshold) {
+            sort_by_column();
+            std::vector<BlockContainer> res;
+            int pre_row = 0;
+            int pre_idx = 0;
+            for(int i = 0; i < pos_s.size(); ++i) {
+                if(pos_s[i].second.row_idx >= pre_row + merge_threshold) {
+                    auto tmp = std::vector<std::pair<MatrixPos, MatrixPos>>(pos_s.begin() + pre_idx, pos_s.begin() + i);
+                    res.push_back(BlockContainer(csr_csc, tmp));
+                    // std::cout << "-----------------------------------------------" << std::endl;
+                    // res[res.size() - 1].print();
+                    pre_idx = i;
+                    pre_row = pos_s[i].first.row_idx;
+                }
+            }
+            auto tmp = std::vector<std::pair<MatrixPos, MatrixPos>>(pos_s.begin() + pre_idx, pos_s.end());
+            res.push_back(BlockContainer(csr_csc, tmp));
+            return res;    
+        }
+
         std::vector<BlockContainer> split_by_col(int merge_threshold) {
+            sort_by_column();
             std::vector<BlockContainer> res;
             int pre_col = 0;
             int pre_idx = 0;
             for(int i = 0; i < pos_s.size(); ++i) {
-                if(pos_s[i].first.col_idx != pre_col) {
+                if(pos_s[i].first.col_idx >= pre_col + merge_threshold) {
                     auto tmp = std::vector<std::pair<MatrixPos, MatrixPos>>(pos_s.begin() + pre_idx, pos_s.begin() + i);
                     res.push_back(BlockContainer(csr_csc, tmp));
                     // std::cout << "-----------------------------------------------" << std::endl;
