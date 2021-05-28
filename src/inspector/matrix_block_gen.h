@@ -46,7 +46,10 @@ namespace ftxj {
 
         static MatrixPos rectangels_max(MatrixPos start_pos, CSRCSCMatrix &csr_csc) {
             int row_max = row_line_succ_max(start_pos, csr_csc);
+            if(row_max > 16) row_max = 16;
+            
             // std::cout << "row max = " << row_max << std::endl;
+            
             int now_max_row = 0;
             int now_max_col = 70000;
             int now_max = 0;
@@ -57,7 +60,7 @@ namespace ftxj {
             for(int i = 0; i < row_max; ++i) {
                 now_max_row = i + 1;
                 int col_max = col_line_succ_max({start_pos.row_idx, start_pos.col_idx + i}, csr_csc);
-                // std::cout << "col max = " << col_max << std::endl;
+                // std::cout << "col max = " << col_max <<  ", " << start_pos.row_idx << ", " << start_pos.col_idx + i << std::endl;
                 now_max_col = std::min(col_max, now_max_col);
                 int tmp_area = now_max_col * now_max_row;
                 if(tmp_area > now_max) {

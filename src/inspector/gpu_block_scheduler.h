@@ -169,6 +169,36 @@ namespace ftxj {
             return res;
         }
 
+        struct NoNameBlock {
+            std::vector<float> value;
+            std::vector<int> row_access;
+            std::vector<int> load_idx_row_len;
+            std::vector<int> value_access;
+        };
+
+        NoNameBlock get_data2(int matrix_size) {
+            NoNameBlock res;
+            res.load_idx_row_len.push_back(0);
+            for(auto x : schedule_result_) {
+                auto need_merge = x.blocks_.get_line_block_data(matrix_size);
+                auto need_merge2 = x.blocks_.gen_index_access();
+                res.value.insert(res.value.end(), need_merge.value.begin(), need_merge.value.end());
+                res.row_access.insert(res.row_access.end(), 
+                    need_merge.row_access.begin(), 
+                    need_merge.row_access.end()
+                );
+                res.load_idx_row_len.push_back(
+                    res.load_idx_row_len[res.load_idx_row_len.size() - 1] + 
+                    need_merge.row_access.size()
+                );
+                res.value_access.insert(res.value_access.end(), 
+                    need_merge2.begin(), need_merge2.end());
+            }
+            std::vector<float> need_expand(res.value.size() / 5, 0.0625);
+            res.value.insert(res.value.end(), need_expand.begin(), need_expand.end());
+            return res;
+        }
+
         struct RectagelsBlocks {
             std::vector<float> value;
             std::vector<int> row_access;

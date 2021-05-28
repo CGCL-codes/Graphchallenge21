@@ -17,7 +17,6 @@ namespace ftxj {
     class BlockContainer {
         std::vector<std::pair<MatrixPos, MatrixPos>> pos_s;
         CSRCSCMatrix &csr_csc;
-        
 
         bool same_col_;
 
@@ -84,6 +83,102 @@ namespace ftxj {
             std::vector<int> row_access;
         };
 
+        struct hbm_line {
+            int a[4] = {-1};
+            int layer = -1;
+        };
+
+        // float hmb_utilization(std::vector<int> &access) {
+        //     int hit = 0;
+        //     int miss = 0;
+        //     for(int i = 0; i < access.size(); ++i) {
+        //         miss++;
+        //         int beg_trans = access[i];
+        //         for(int j = i + 1; j < access.size(); ++j) {
+        //             if(access[j] - access[i] < 128) {
+        //                 hit++;
+        //             }
+        //             else {
+        //                 i = j;
+        //                 break;
+        //             }
+        //         }
+        //     }
+        // }
+
+        std::vector<int> hmb_shuffle(std::vector<int> &origin, int neuron) {
+            std::vector<std::vector<hbm_line>> hbm_channels(32);
+            std::vector<int> res;
+            int max_size = 0;
+            for(int i = 0; i < origin.size(); ++i) {
+                int layer = origin[i] / (128);
+                int channel = (origin[i] / 4) % 32;
+                int pos = origin[i] % 4;
+                // std::cout << channel << ", " << layer << ", " << pos << std::endl;
+                bool push = false;
+                for(int kk = 0; kk < hbm_channels[channel].size(); ++kk) {
+                    if(hbm_channels[channel][kk].layer == layer) {
+                        assert_msg(hbm_channels[channel][kk].a[pos] == -1, "error!");
+                        hbm_channels[channel][kk].a[pos] = origin[i];
+                        push = true;
+                    }
+                }
+                if(push == false) {
+                    hbm_line tmp;
+                    tmp.a[0] = -1;
+                    tmp.a[1] = -1;
+                    tmp.a[2] = -1;
+                    tmp.a[3] = -1;
+                    tmp.a[pos] = origin[i];
+                    tmp.layer = layer;
+                    hbm_channels[channel].push_back(tmp);
+                }
+                max_size = std::max(int(hbm_channels[channel].size()), max_size);
+            }
+            for(int i = 0; i < max_size; ++i) {
+                for(int c = 0; c < 32; ++c) {
+                    if(hbm_channels[c].size() > i) {
+                        hbm_line tmp = hbm_channels[c][i];
+                        for(int j = 0; j < 4; ++j) {
+                            if(tmp.a[j] != -1) {
+                               res.push_back(tmp.a[j]);
+                            }
+                        }
+                    }
+                }
+            }
+            return res;
+        }
+
+
+        std::vector<int> gen_index_access() {
+            int start_col = pos_s[0].first.col_idx;
+            int end_col = pos_s[pos_s.size() - 1].second.col_idx;
+
+            std::vector<std::vector<int>> index = 
+                std::vector<std::vector<int>>((end_col - start_col + 1) / 16);
+
+            for(int i = 0; i < pos_s.size(); ++i) {
+                int st_row = pos_s[i].first.row_idx;
+                int st_col = pos_s[i].first.col_idx;
+                int ed_row = pos_s[i].second.row_idx;
+                int ed_col = pos_s[i].second.col_idx;
+                for(int j = st_col; j <= ed_col; j += 16) {
+                    assert_msg(j != st_col + 16, "error!");
+                    for(int i = 0; i < ed_row - st_row + 1; ++i) {
+                        index[(j - start_col) / 16].push_back(st_row + i);
+                    }            
+                }
+            }
+            std::vector<int> res;
+            for(int j = 0; j < index[0].size(); ++j) {
+                for(int i = 0; i < index.size(); ++i) {
+                    res.push_back(index[i][j]);
+                }
+            } 
+            return res; 
+        }
+
         std::pair<bool, int> access_succ_test(std::vector<int> access, int matrix_size) {
             int begin = access[0];
             for(int i = 1; i < access.size(); ++i) {
@@ -91,7 +186,7 @@ namespace ftxj {
                     int new_begin = access[i];
                     for(int new_i = 1; new_i < access.size(); ++new_i) {
                         if((new_begin + new_i) % matrix_size != access[(new_i + i) % access.size()]) {
-                            std::cout << "access index succ test fail!" << std::endl;
+                            // std::cout << "access index succ test fail!" << std::endl;
                             return {false, i};
                         }
                     }
@@ -127,6 +222,7 @@ namespace ftxj {
                 lineblock.row_access = std::vector<int>(1, tmp_access[tmp.second]);
             }
             else {
+                // auto r = hmb_shuffle(tmp_access, 16384);
                 lineblock.row_access = tmp_access;
             }
             return lineblock;

@@ -7,7 +7,7 @@ import sys
 
 num = sys.argv[1]
 neuron = 16384
-bucketnumber = 1024
+bucketnumber = 512
 tile_size_str = sys.argv[2]
 
 draw_num = sys.argv[3]
