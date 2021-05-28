@@ -20,16 +20,18 @@ namespace ftxj {
 
 
 
-    void test_benchmark_n16384_l11_kernel(
-        COOMatrix& coo, 
-        std::vector<float> &B_val, 
-        std::vector<int> &B_index, 
-        std::vector<int> &A_row_access,
-        std::vector<int> &A_row_access_len,
-        int max_input_access,
-        int batch, int neuron, 
-        GpuEnv &env
-    );
+    void test_benchmark_n16384_l11_kernel(COOMatrix& coo, std::vector<float> &B_val, std::vector<int> &B_index, int batch, int neuron, GpuEnv &env);
+
+    // void test_benchmark_n16384_l11_kernel(
+    //     COOMatrix& coo, 
+    //     std::vector<float> &B_val, 
+    //     std::vector<int> &B_index, 
+    //     std::vector<int> &A_row_access,
+    //     std::vector<int> &A_row_access_len,
+    //     int max_input_access,
+    //     int batch, int neuron, 
+    //     GpuEnv &env
+    // );
 
     void vector4_load_data_benchmark(GpuEnv &env);
     void test_shared_memory_mm(COOMatrix&, std::vector<float> &val, std::vector<int> &row_access, GpuEnv &env);

@@ -9,7 +9,7 @@ __device__ inline float __ReLU(float x) {
    return x<0.0?0.0:x>32.0?32.0:x;
 };
 
-#define OUT_CHANNEL 32
+#define OUT_CHANNEL 16
 // batch parallel
 __global__ void n16384_l11_kernel(
     float * __restrict__ A, 
@@ -37,6 +37,7 @@ __global__ void n16384_l11_kernel(
         for(int r = 0; r < 32; ++r) {
             int row_idx = index[idx + r];
             float val = A[row_idx * batch + blockIdx.x * blockDim.x + threadIdx.x];
+            // float val = 1.0;
             for(int c = 0; c < 16; ++c) {
                 reduce[c] += val * shared[o_r * 32 * 16 + r * 16 + c];
             }
@@ -102,7 +103,7 @@ void test_benchmark_n16384_l11_kernel(
 	env.add_event("row-succ-20-uiuc-kernel");
     env.event_start_record("row-succ-20-uiuc-kernel");
 
-	int blocksize = 128;
+	int blocksize = 256;
 	dim3 block(blocksize);
     dim3 grid((mybatch + blocksize - 1) / blocksize,  neuron / OUT_CHANNEL);
 

@@ -46,8 +46,8 @@ int main() {
 
     GpuEnv env(0);
     // test_benchmark_succ_load_store(batch, neuron, env);
-    test_benchmark_matrix_transpose(batch, neuron, env); 
-    return 0;
+    // test_benchmark_matrix_transpose(batch, neuron, env); 
+    // return 0;
 
     // test_benchmark_20_uiuc(coo, uiuc,  batch, env);
     // return 0;
@@ -66,12 +66,13 @@ int main() {
 
     MaxInReuseBSchedule schedule(blocks);
     
-    schedule.schedule_output_parallel(128, 2, false);
+    // schedule.schedule_output_parallel(128, 2, false);
+    schedule.schedule(32, 1);
 
     std::cout << "block schedule succ" << std::endl;
     
-    auto data = schedule.get_data2(neuron);
-    // auto data = schedule.get_data(neuron);
+    // auto data = schedule.get_data2(neuron);
+    auto data = schedule.get_data(neuron);
     
 
     // std::cout << "data size = " << data.value.size() << std::endl;
@@ -102,25 +103,22 @@ int main() {
     // test_benchmark_row_succ_20_uiuc_transpose_no_conflict(coo, data.value, data.row_access, batch, neuron, env);
     // test_benchmark_rectangels_batch_parallel_kernel(coo, data.value, data.row_access, batch, neuron, env);
     
-    std::vector<int> value_access;
-    for(int i = 0; i < data.load_idx_row_len.size(); ++i) {
-        std::map<int, int> global_to_shared;
-        int beg = data.load_idx_row_len[i];
-        int end = data.load_idx_row_len[i + 1];
-        for(int j = beg; j < end; ++j) {
-            global_to_shared[data.row_access[j]] = j - beg;
-        }
-        int s_beg = i * 32 * 8;
-        int s_end = std::min((i + 1) * 32 * 8, int(data.value_access.size()));
-        for(int j = s_beg; j < s_end; ++j) {
-            value_access.push_back(global_to_shared[data.value_access[j]]);
-        }
-    }
+    // std::vector<int> value_access;
+    // for(int i = 0; i < data.load_idx_row_len.size(); ++i) {
+    //     std::map<int, int> global_to_shared;
+    //     int beg = data.load_idx_row_len[i];
+    //     int end = data.load_idx_row_len[i + 1];
+    //     for(int j = beg; j < end; ++j) {
+    //         global_to_shared[data.row_access[j]] = j - beg;
+    //     }
+    //     int s_beg = i * 32 * 8;
+    //     int s_end = std::min((i + 1) * 32 * 8, int(data.value_access.size()));
+    //     for(int j = s_beg; j < s_end; ++j) {
+    //         value_access.push_back(global_to_shared[data.value_access[j]]);
+    //     }
+    // }
 
-    // test_benchmark_n16384_l11_kernel(
-    //     coo, data.value, value_access, data.row_access, data.load_idx_row_len, 
-    //     160, batch, neuron, env
-    // );
+    test_benchmark_n16384_l11_kernel(coo, data.value, data.row_access, batch, neuron, env);
 
 
 
