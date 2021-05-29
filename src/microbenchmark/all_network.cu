@@ -309,6 +309,7 @@ void test_benchmark_graph_challenge(
 
     std::map<int, int> neuron_map = {
         {1024, 6},
+        {4096, 8},
         {16384, 10}
     };
     std::map<int, int> stride_map = {
@@ -368,6 +369,7 @@ void test_benchmark_graph_challenge(
             dim3 block(blocksize);
             dim3 grid((this_round_batch + MINIBATCH - 1)/ MINIBATCH, (neuron + blocksize - 1) / blocksize);
             int stride = stride_map[l + 1];
+            std::cout << stride << std::endl;
             int load_num = stride > blocksize ? 32 * (blocksize / 16) : stride + 16 * (blocksize / 16);
             int shared_size = ((load_num + 31) / 32) * 32;
         	n16384_l2_l11_kernel<<<grid, block, sizeof(float) * (MINIBATCH * shared_size), stream>>>(
@@ -437,6 +439,7 @@ void test_benchmark_graph_challenge(
             }
 
         }
+
         if(l > neuron_map[neuron] - 1) {
             Safe_Call(cudaMemcpyAsync(active, active_d, sizeof(int) * transpose_batch, cudaMemcpyDeviceToHost, stream));
         }

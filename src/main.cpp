@@ -14,8 +14,8 @@ int main(int argc, char* argv[]) {
     std::cout << "begin" << std::endl;
 
 
-    int neuron = 16384;
-    int batch = 1918;
+    int neuron = 1024;
+    int batch = 6000;
 
 
     std::map<int, int> stride_map = {
@@ -32,12 +32,12 @@ int main(int argc, char* argv[]) {
     };
     int l = atoi(argv[1]);
     // int l = 5;
-    std::string file_name = "../data/neuron16384/n16384-l" + std::to_string(l) + ".tsv";
+    std::string file_name = "../data/neuron1024/n1024-l" + std::to_string(l) + ".tsv";
     COOMatrix coo(file_name, 1, false);
     // COOMatrix coo_2("../data/neuron16384/n16384-l119.tsv", 1, true);
     // std::cout << "read coo success" << std::endl;
 
-    HashReorder hash_reorder_t(1024, neuron);
+    HashReorder hash_reorder_t(64, neuron);
     coo.reorder(hash_reorder_t);
     // std::cout << "reorder success" << std::endl;
 
@@ -63,8 +63,8 @@ int main(int argc, char* argv[]) {
     GpuEnv env(0);
     // test_benchmark_succ_load_store(batch, neuron, env);
     // test_benchmark_matrix_transpose(batch, neuron, env); 
-    test_benchmark_matrix_transpose_and_delete(batch, neuron, env);
-    return 0;
+    // test_benchmark_matrix_transpose_and_delete(batch, neuron, env);
+    // return 0;
 
     // test_benchmark_20_uiuc(coo, uiuc,  batch, env);
     // return 0;
@@ -119,8 +119,8 @@ int main(int argc, char* argv[]) {
     // test_benchmark_row_succ_20_uiuc_transpose(coo, data.value, data.row_access, batch, neuron, env);
     // test_benchmark_row_succ_20_uiuc_transpose_no_conflict(coo, data.value, data.row_access, batch, neuron, env);
     // test_benchmark_rectangels_batch_parallel_kernel(coo, data.value, data.row_access, batch, neuron, env);
-    // test_benchmark_n16384_l2_l10_kernel(coo, data.value, stride_map[l], batch, neuron, env);
-    test_benchmark_n16384_l11_kernel(coo, data.value, data.row_access, batch, neuron, env);
+    test_benchmark_n16384_l2_l10_kernel(coo, data.value, stride_map[l], batch, neuron, env);
+    // test_benchmark_n16384_l11_kernel(coo, data.value, data.row_access, batch, neuron, env);
 
 
 

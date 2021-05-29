@@ -57,11 +57,13 @@ int main(int argc, char* argv[]) {
 
     std::map<int, int> hash_map = {
         {16384, 1024},
-        {1024, 64}
+        {4096, 256},
+        {1024, 64},
     };
 
     std::map<int, float> bias_map = {
         {16384, -0.4},
+        {4096, -0.35},
         {1024, -0.3}
     };
 
@@ -89,7 +91,8 @@ int main(int argc, char* argv[]) {
         if(l == 0) {
             schedule.schedule(16, 7);
         }
-        else if(l <= 9) {
+        else if(l <= 7) {
+            // TODO Fix it
             schedule.schedule_output_parallel(128, 1, false);
         }        
         else {

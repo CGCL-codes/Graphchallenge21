@@ -33,9 +33,9 @@ __global__ void n16384_l2_l11_kernel(
 		int f = n / load_num;
 		int k = n % load_num;
 		int a_k = ((stride > blockDim.x) && (k >= blockDim.x)) ? (k - blockDim.x) + start_idx2 : k + start_idx1;
-		if(blockIdx.x == 0 && blockIdx.y == 0 && f == 0) {
-			printf("block 0 load %d\n", a_k);
-		}
+		// if(blockIdx.x == 0 && blockIdx.y == 0 && f == 0) {
+		// 	printf("block 0 load %d\n", a_k);
+		// }
 		shared[f * shared_size + k] = A[(blockIdx.x * MINIBATCH + f) * neuron + (a_k) % neuron];
 	}
 
