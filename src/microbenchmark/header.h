@@ -18,8 +18,9 @@ namespace ftxj {
         int batch, int neuron, float bias,GpuEnv &env
     );
 
+    void test_benchmark_matrix_transpose_and_delete(int batch, int neuron, GpuEnv &env);
 
-
+    void test_benchmark_n16384_l2_l10_kernel(COOMatrix& coo, std::vector<float> &val, int stride, int batch, int neuron, GpuEnv &env);
     void test_benchmark_n16384_l11_kernel(COOMatrix& coo, std::vector<float> &B_val, std::vector<int> &B_index, int batch, int neuron, GpuEnv &env);
 
     // void test_benchmark_n16384_l11_kernel(

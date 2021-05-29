@@ -38,8 +38,20 @@ __global__ void n16384_l11_kernel(
             int row_idx = index[idx + r];
             float val = A[row_idx * batch + blockIdx.x * blockDim.x + threadIdx.x];
             // float val = 1.0;
-            for(int c = 0; c < 16; ++c) {
-                reduce[c] += val * shared[o_r * 32 * 16 + r * 16 + c];
+            for(int c = 0; c < 16; c += 8) {
+                // if(o_r == 0 && blockIdx.x == 0 && blockIdx.y == 0 && threadIdx.x == 0 && c == 0) {
+                //     printf("%f * %f\n", shared[o_r * 32 * 16 + r * 16 + c], val);
+                // }
+                reduce[c + 0] += val * shared[o_r * 32 * 16 + r * 16 + c + 0];
+                reduce[c + 1] += val * shared[o_r * 32 * 16 + r * 16 + c + 1];
+                reduce[c + 2] += val * shared[o_r * 32 * 16 + r * 16 + c + 2];
+                reduce[c + 3] += val * shared[o_r * 32 * 16 + r * 16 + c + 3];
+                
+                reduce[c + 4] += val * shared[o_r * 32 * 16 + r * 16 + c + 4];
+                reduce[c + 5] += val * shared[o_r * 32 * 16 + r * 16 + c + 5];
+                reduce[c + 6] += val * shared[o_r * 32 * 16 + r * 16 + c + 6];
+                reduce[c + 7] += val * shared[o_r * 32 * 16 + r * 16 + c + 7];
+                
             }
         }
         for(int c = 0; c < 16; ++c) {

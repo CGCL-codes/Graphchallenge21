@@ -27,7 +27,7 @@ __global__ void matrix_transpose(float * __restrict__ odata, float * __restrict_
     for (int j = 0; j < TILE_DIM && x < batch; j += BLOCK_ROWS) {
         odata[(y+j) * batch + x] = tile[threadIdx.x][threadIdx.y + j];
     }    
-}
+};
 
 void test_benchmark_matrix_transpose(int batch, int neuron, GpuEnv &env) {
 

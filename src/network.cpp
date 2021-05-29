@@ -56,11 +56,13 @@ int main(int argc, char* argv[]) {
     int layer = atoi(argv[3]);
 
     std::map<int, int> hash_map = {
-        {16384, 1024}
+        {16384, 1024},
+        {1024, 64}
     };
 
     std::map<int, float> bias_map = {
-        {16384, -0.4}
+        {16384, -0.4},
+        {1024, -0.3}
     };
 
     std::vector<std::vector<float>> input(batch, std::vector<float>(neuron));
@@ -87,9 +89,12 @@ int main(int argc, char* argv[]) {
         if(l == 0) {
             schedule.schedule(16, 7);
         }
-        else {
-            schedule.schedule_output_parallel(128, 2, false);
+        else if(l <= 9) {
+            schedule.schedule_output_parallel(128, 1, false);
         }        
+        else {
+            schedule.schedule(128, 1);
+        }
         std::cout << "Schedule succ" << std::endl;
         auto data = schedule.get_data(neuron);
         weight.push_back(data.value);

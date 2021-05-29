@@ -25,7 +25,7 @@ namespace ftxj {
                         // if(b == 1 && col == 16352) {
                         //     printf("%f * %f %d\n", in, val, row);
                         // }
-                        // if(b == 7 && col == 192) {
+                        // if(b == 0 && col == 0) {
                         //     printf("0 %f * %f %d\n", in, val, row);
                         // }
                     }
@@ -36,7 +36,7 @@ namespace ftxj {
                         // if(b == 1 && row == 16352) {
                         //     printf("%f * %f %d\n", in, val, col);
                         // }
-                        // if(b == 7 && row == 192) {
+                        // if(b == 0 && row == 0) {
                         //     printf("0 %f * %f %d\n", in, val, col);
                         // }
                     }
