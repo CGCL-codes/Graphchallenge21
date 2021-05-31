@@ -91,7 +91,6 @@ for(int b = 0; b != Batch; b += TileBB) { // block.x
   for(int n = 0; n != Neuron; n += TileBN) {  // block.y
     for(int bb = b; bb < b + TileBB; bb += TileTB) { 
       for(int bbb = bb; bbb < bb + TileTB; ++bbb) { // thread.x
-      
         for(int k = 0; k < nnzs; ++k) {
           for(int nn = n; nn < n + TileBN; nn += TileTN) { 
             for(int nnn = nn; nnn < nn + TileTN; ++nnn) { 
