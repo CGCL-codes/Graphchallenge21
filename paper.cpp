@@ -185,6 +185,71 @@ for(int b = 0; b != Batch; b += TileBB) {
 
 
 
-// dataflow 2
+// dataflow fuse
+
+
+
+for(int b = 0; b != Batch; b += TileBB) {
+  for(int n = 0; n != Neuron; n += TileBN) { 
+    for(int bb = b; bb < b + TileBB; bb += TileTB) {
+      for(int nn = n; nn < n + TileBN; nn += TileTN) { 
+        for(int bbb = bb; bbb < bb + TileTB; ++bbb) {
+          for(int nnn = nn; nnn < nn + TileTN; ++nnn) {
+            int nnzs = GetNNZs(W1, nnn);
+            for(int k = 0; k < nnzs; ++k) {
+              int idx = GetIdx(W1, nnn, k);
+              float val_w = GetIdx(W1, nnn, k);
+              float val_a = Y1(bbb, idx);
+              Y2(bbb, nnn) += val_a * val;       
+            }
+            Y2(bbb, nnn) = ReLU(Y1(bbb, nnn) + bias);
+
+for(int b = 0; b != Batch; b += TileBB) {
+  for(int n = 0; n != Neuron; n += TileBN) { 
+    for(int bb = b; bb < b + TileBB; bb += TileTB) {
+      for(int nn = n; nn < n + TileBN; nn += TileTN) { 
+        for(int bbb = bb; bbb < bb + TileTB; ++bbb) {
+          for(int nnn = nn; nnn < nn + TileTN; ++nnn) {
+            int nnzs = GetNNZs(W2, nnn);
+            for(int k = 0; k < nnzs; ++k) {
+              int idx = GetIdx(W2, nnn, k);
+              float val_w = GetIdx(W2, nnn, k);
+              float val_a = Y2(bbb, idx);
+              Y3(bbb, nnn) += val_a * val;       
+            }
+            Y3(bbb, nnn) = ReLU(Y2(bbb, nnn) + bias);
+
+
+
+for(int b = 0; b != Batch; b += TileBB) {
+  for(int n = 0; n != Neuron; n += TileBN) { 
+    for(int bb = b; bb < b + TileBB; bb += TileTB) {
+      for(int nn = n; nn < n + TileBN; nn += TileTN) { 
+        for(int bbb = bb; bbb < bb + TileTB; ++bbb) {
+          for(int nnn = nn; nnn < nn + TileTN; ++nnn) {
+            int nnzs = GetNNZs(W1, nnn);
+            for(int k = 0; k < nnzs; ++k) {
+              int idx = GetIdx(W1, nnn, k);
+              float val_w = GetIdx(W1, nnn, k);
+              float val_a = Y1(bbb, idx);
+              Y2(bbb, nnn) += val_a * val;       
+            }
+            Y2(bbb, nnn) = ReLU(Y1(bbb, nnn) + bias);
+
+for(int b = 0; b != Batch; b += TileBB) {
+  for(int n = 0; n != Neuron; n += TileBN) { 
+    for(int bb = b; bb < b + TileBB; bb += TileTB) {
+      for(int nn = n; nn < n + TileBN; nn += TileTN) { 
+        for(int bbb = bb; bbb < bb + TileTB; ++bbb) {
+          for(int nnn = nn; nnn < nn + TileTN; ++nnn) {
+            int nnzs = GetNNZs(W2, nnn);
+            for(int k = 0; k < nnzs; ++k) {
+              int idx = GetIdx(W2, nnn, k);
+              float val_w = GetIdx(W2, nnn, k);
+              float val_a = Y2(bbb, idx);
+              Y3(bbb, nnn) += val_a * val;       
+            }
+            Y3(bbb, nnn) = ReLU(Y2(bbb, nnn) + bias);
+
 
 }
