@@ -86,6 +86,34 @@ for(int b = 0; b != Batch; b += TileBB) { // block.x
   }
 }
 
+
+// Tiled dataflow, output parallel
+...
+for(int nnn = nn; nnn < nn + TileTN; ++nnn) { // thread.x
+  ...
+  for(int k = 0; k < nnzs; ++k) {
+    int idx = GetIdx(W, nnn, k);
+    float val_w = GetIdx(W, nnn, k); // W reuse 
+    ...
+    for(int bbb = bb; bbb < bb + TileTB; ++bbb) {
+      float val_a = A(bbb, idx);
+      C(bbb, nnn) += val_a * val;       
+    }
+
+...
+for(int bbb = bb; bbb < bb + TileTB; ++bbb) { // thread.x
+  for(int k = 0; k < nnzs; ++k) {
+      ...
+      for(int nnn = nn; nnn < nn + TileTN; ++nnn) { 
+        int nnzs = GetNNZs(W, nnn);
+        int idx = GetIdx(W, nnn, k);
+        float val_w = GetIdx(W, nnn, k); // Register reuse
+        float val_a = A(bbb, idx);
+        C(bbb, nnn) += val_a * val;       
+      }
+      C(bbb, nnn) = ReLU(C(bbb, nnn) + bias);
+
+
 // Tiled dataflow, batch parallel
 for(int b = 0; b != Batch; b += TileBB) { // block.x
   for(int n = 0; n != Neuron; n += TileBN) {  // block.y
