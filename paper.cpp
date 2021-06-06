@@ -285,6 +285,12 @@ for(int b = 0; b != Batch; b++)
       R(b, n) += Y(b, k) * W(k, n); 
 
 
+for(int n = 0; n != Neuron; n++) 
+  for(int b = 0; b != Batch; b++) 
+    for(int k = 0; k != Neuron; k++) 
+      R(b, n) += Y(b, k) * W(k, n); 
+
+
 for(int b = 0; b != Batch; b += TileBB) 
   for(int n = 0; n != Neuron; n += TileBN)   
     for(int bb = b; bb != b + TileBB; bb += TileTB) 
@@ -298,10 +304,21 @@ for(int b = 0; b != Batch; b += TileBB)
 
 
 for(int b = 0; b != Batch; b++) --------------- blockIdx.x
-  for(int n = 0; n != Neuron; n += TileBN) { 
+  for(int n = 0; n != Neuron; n += TileBN) 
     for(int k = 0; k != Neuron; k++) ---------- threadIdx.y
       for(int nn = n; nn != n + TileBN; nn++)-- threadIDx.x
-        C(b, nn) +=  Y(b, k) * W(k, nn);
+        R(b, nn) +=  Y(b, k) * W(k, nn);
+
+
+for(int b = 0; b != Batch; b++) --------------- blockIdx.x
+  for(int n = 0; n != Neuron; n += TileBN)
+    for(int k = 0; k != Neuron; k++) ---------- threadIdx.y
+      tile_begin = rowOff[..] + threadIdx.x --- threadIDx.x
+      tile_end = rowOff[.. + 1]
+      for(int nn = tile_begin; nn != tile_end; nn++)
+        R(b, nn) +=  Y(b, k) * W(k, nn);
+
+
 
 // 20 champion dataflow
 for(int b = 0; b != Batch; b += TileBB) { // blockIdx.x
