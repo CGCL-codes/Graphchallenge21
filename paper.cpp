@@ -119,13 +119,11 @@ for(int b = 0; b != Batch; b += TileBB) { // block.x
   for(int n = 0; n != Neuron; n += TileBN) {  // block.y
     for(int bb = b; bb < b + TileBB; bb += TileTB) { 
       for(int bbb = bb; bbb < bb + TileTB; ++bbb) { // thread.x
-        for(int k = 0; k < nnzs; ++k) {
-          for(int nn = n; nn < n + TileBN; nn += TileTN) { 
+        for(int nn = n; nn < n + TileBN; nn += TileTN) { 
+          for(int k = 0; k < N; ++k) {
+            float val_a = A(bbb, k);
             for(int nnn = nn; nnn < nn + TileTN; ++nnn) { 
-              int nnzs = GetNNZs(W, nnn);
-              int idx = GetIdx(W, nnn, k);
-              float val_w = GetIdx(W, nnn, k); // Register reuse
-              float val_a = A(bbb, idx);
+              float val_w = W(nnn, k)
               C(bbb, nnn) += val_a * val;       
             }
             C(bbb, nnn) = ReLU(C(bbb, nnn) + bias);
@@ -204,6 +202,8 @@ for(int b = 0; b != Batch; b += TileBB) {
             }
             Y2(bbb, nnn) = ReLU(Y1(bbb, nnn) + bias);
 
+
+
 for(int b = 0; b != Batch; b += TileBB) {
   for(int n = 0; n != Neuron; n += TileBN) { 
     for(int bb = b; bb < b + TileBB; bb += TileTB) {
@@ -250,6 +250,147 @@ for(int b = 0; b != Batch; b += TileBB) {
               Y3(bbb, nnn) += val_a * val;       
             }
             Y3(bbb, nnn) = ReLU(Y2(bbb, nnn) + bias);
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+///////////////////////////////////////////////////
+
+for(int l = 0; l < layer, l++) {
+  ...
+  spmm_kerenl<<<...>>>(I[l], O[l], W[l], active_d, ...)
+  cudaMemcpy(active, active_d, ...)
+  ...
+}
+
+
+
+
+
+for(int b = 0; b != Batch; b++) 
+  for(int n = 0; n != Neuron; n++) 
+    for(int k = 0; k != Neuron; k++) 
+      R(b, n) += Y(b, k) * W(k, n); 
+
+
+for(int b = 0; b != Batch; b += TileBB) 
+  for(int n = 0; n != Neuron; n += TileBN)   
+    for(int bb = b; bb != b + TileBB; bb += TileTB) 
+      for(int nn = n; nn != n + TileBN; nn += TileTN) 
+        for(int k = 0; k != Neuron; k += TileBK) 
+          for(int kk = k; k != k + TileBK; k += TileTK) 
+            for(int bbb = bb; bbb != bb + TileTB; ++bbb) 
+              for(int nnn = nn; nnn != nn + TileTN; ++nnn) 
+                for(int kkk = kk; kkk != kk + TileTK; ++kkk) 
+                  R(bbb, nnn) += Y(bbb, kkk) * W(kkk, nnn);
+
+
+for(int b = 0; b != Batch; b++) --------------- blockIdx.x
+  for(int n = 0; n != Neuron; n += TileBN) { 
+    for(int k = 0; k != Neuron; k++) ---------- threadIdx.y
+      for(int nn = n; nn != n + TileBN; nn++)-- threadIDx.x
+        C(b, nn) +=  Y(b, k) * W(k, nn);
+
+// 20 champion dataflow
+for(int b = 0; b != Batch; b += TileBB) { // blockIdx.x
+  for(int n = 0; n != Neuron; n += TileBN) { // blockIdx.y
+    for(int nn = n; nn != n + TileBN; nn += TileTN) { 
+      for(int nnn = nn; nnn != nn + TileTN; ++nnn) { // threadIdx.x
+        for(int k = 0; k != Neuron; ++k) {
+          val_W = W(k, nnn);
+          for(int bb = b; bb != b + TileBB; bb += TileTB) { 
+            for(int bbb = bb; bbb != bb + TileTB; ++bbb) {
+              O(bbb, nnn) += I(bbb, k) * val_W;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// batch parallel dataflow
+for(int b = 0; b != Batch; b += TileBB) { // blockIdx.x
+  for(int n = 0; n != Neuron; n += TileBN) { // blockIdx.y
+
+    for(int bbb = bb; bbb != bb + TileTB; ++bbb) { // threadIdx.x
+  
+      for(int bb = b; bb != b + TileBB; bb += TileTB) { 
+        for(int k = 0; k != Neuron; ++k) {
+          val_I = I(bbb, k);
+          for(int nn = n; nn != n + TileBN; nn += TileTN) { 
+            for(int nnn = nn; nnn != nn + TileTN; ++nnn) { 
+              O(bbb, nnn) += val_I * W(k, nnn);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+
+/*
+nnn : compact(k), 3 种
+bbb : compact(n), 
+*/
+for(int b = 0; b != Batch; b += TileBB) {
+  for(int n = 0; n != Neuron; n += TileBN) {
+
+
+    for(int bb = b; bb != b + TileBB; bb += TileTB) { 
+      for(int nn = n; nn != n + TileBN; nn += TileTN) { 
+
+        for(int bbb = bb; bbb != bb + TileTB; ++bbb) {
+          
+          for(int nnn = nn; nnn != nn + TileTN; ++nnn) {
+
+            for(int k = 0; k != Neuron; k += TileBK) {
+              for(int kk = k; k != k + TileBK; k += TileTK) {
+                for(int kkk = kk; kkk != kk + TileTK; ++kkk) {
+                  O(bbb, nnn) += I(bbb, kkk) * W(kkk, nnn);
+                }
+
+
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+
+// fused
+
+__global__ void layer_fuse_spmm_relu() {
+  __shared__ float input_s[SIZE];
+  for(int i = 0; i < inread_num[blockIdx.x]; ++i) {
+    for(int j = 0; j < TileBB; ++j) {
+      input_s[i * TileBB + j] = currfeat[];
+    }
+  }
+  __syncthreads();
+  float res[TileBB];
+  int nnzs = weight_nnzs[];
+  for(int i = 0; i < k; ++i) {
+    for(int b = 0; b < TileBB; ++b) {
+      res[b] += 
+    }
+  }
 
 
 }
