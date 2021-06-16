@@ -98,6 +98,7 @@ __global__ void fuseed_layer_l0_l11(
                 shared[f * thread_num[layer] + threadIdx.x] = __ReLU(res[f] + bias);
             }
         }
+        
         if(layer == FUSE_LAYER - 1) {
             if(threadIdx.x >= thread_num[layer] || blockIdx.y * thread_num[layer] + threadIdx.x >= neuron) break;
             for(int f = 0; f < MINIBATCH ; ++f) {
@@ -258,7 +259,7 @@ void test_benchmark_fused_layer1024_0_1(
     env.event_start_record("row-succ-20-uiuc-kernel");
     int blocksize = 128;
     dim3 block(blocksize);
-    dim3 grid((batch + MINIBATCH - 1)/ MINIBATCH, (neuron + blocksize - 1) / last_layer_thread);
+    dim3 grid((batch + MINIBATCH - 1)/ MINIBATCH, (neuron + last_layer_thread - 1) / last_layer_thread);
 
     fuseed_layer_l0_l11<<<grid, block, sizeof(float) * (MINIBATCH * shared_size_max), stream>>>(
         A_d, B_d[0], B_d[1], C_d, category_d, active_d, stride_d, 

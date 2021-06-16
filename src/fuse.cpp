@@ -102,6 +102,8 @@ int main(int argc, char* argv[]) {
     }
     GpuEnv env(0);
     test_benchmark_fused_layer1024_0_1(input, coo_vec, weight, row_access, batch, neuron, bias_map[neuron], env);
+    // test_benchmark_fuse_cmp_layer1024_0_1(input, weight, row_access, batch, neuron, bias_map[neuron], env);
+    
     std::cout << "[END]..." << std::endl;
     return 0;
 }

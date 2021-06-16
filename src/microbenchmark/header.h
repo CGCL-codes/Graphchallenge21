@@ -33,6 +33,16 @@ namespace ftxj {
         float bias,
         GpuEnv &env
     );
+
+    void test_benchmark_fuse_cmp_layer1024_0_1(
+        std::vector<std::vector<float>> &input,
+        std::vector<std::vector<float>> &weight, 
+        std::vector<std::vector<int>> &row_access, 
+        int batch, 
+        int neuron, 
+        float bias,
+        GpuEnv &env
+    );
     // void test_benchmark_n16384_l11_kernel(
     //     COOMatrix& coo, 
     //     std::vector<float> &B_val, 
