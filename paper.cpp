@@ -320,6 +320,45 @@ for(int b = 0; b != Batch; b++) --------------- blockIdx.x
 
 
 
+for(int b = 0; b != Batch; b += TileBB) -------------------- blockIdx.x
+  for(int n = 0; n != Neuron; n += TileBN)   --------------- blockIdx.y
+    for(int bb = b; bb != b + TileBB; bb += TileTB) 
+      for(int nn = n; nn != n + TileBN; nn += TileTN) 
+        for(int k = 0; k != Neuron; k += TileBK) 
+          for(int kk = k; k != k + TileBK; k += TileTK) 
+            for(int bbb = bb; bbb != bb + TileTB; ++bbb)---- threadIDx.x 
+            or
+            for(int nnn = nn; nnn != nn + TileTN; ++nnn)---- threadIDx.x
+              for(int kkk = kk; kkk != kk + TileTK; ++kkk) 
+                R(bbb, nnn) += Y(bbb, kkk) * W(kkk, nnn);
+
+
+for(int b = 0; b != Batch; b += TileBB) -----------  blockIdx.x
+  for(int n = 0; n != Neuron; n += TileBN)   ------- blockIdx.y
+    for(int bbb = bb; bbb != bb + TileTB; ++bbb)---- threadIDx.x
+
+      for(int kkk = kk; kkk != kk + TileTK; ++kkk) 
+        R(bbb, nnn) += Y(bbb, kkk) * W(kkk, nnn);
+
+
+for(int b = 0; b != Batch; b += TileBB) -----------  blockIdx.x
+  for(int n = 0; n != Neuron; n += TileBN) --------- blockIdx.y
+    for(int bbb = b; bbb != b + TileBB; ++bbb) ----- threadIDx.x
+      for(int k = 0; k != Neuron; ++k) ------------- compact? Tiled?
+        val_I = I(bbb, k);
+        for(int nnn = n; nnn != n + TileBN; ++nnn)-- compact? Tiled?
+          O(bbb, nnn) += val_I * W(k, nnn);
+
+
+for(int b = 0; b != Batch; b += TileBB) -----------  blockIdx.x
+  for(int n = 0; n != Neuron; n += TileBN) --------- blockIdx.y
+    for(int nnn = n; nnn != n + TileBN; ++nnn) ----- threadIDx.x
+      for(int k = 0; k != Neuron; ++k) ------------- compact? Tiled?
+        val_W = W(k, nnn);
+        for(int bbb = b; b != bb + TileBB; ++bbb) 
+          O(bbb, nnn) += I(bbb, k) * val_W;
+
+
 // 20 champion dataflow
 for(int b = 0; b != Batch; b += TileBB) { // blockIdx.x
   for(int n = 0; n != Neuron; n += TileBN) { // blockIdx.y
@@ -338,13 +377,30 @@ for(int b = 0; b != Batch; b += TileBB) { // blockIdx.x
   }
 }
 
+
+// 20 champion dataflow - modify
+for(int b = 0; b != Batch; b += TileBB) { // blockIdx.x
+  for(int n = 0; n != Neuron; n += TileBN) { // blockIdx.y
+    for(int nn = n; nn != n + TileBN; nn += TileTN) { 
+      for(int k = 0; k != Neuron; ++k) {
+        for(int bb = b; bb != b + TileBB; bb += TileTB) { 
+          for(int bbb = bb; bbb != bb + TileTB; ++bbb) {
+            val_I = I(bbb, k)
+            for(int nnn = nn; nnn != nn + TileTN; ++nnn) { // threadIdx.x
+              O(bbb, nnn) += val_I * W(k, nnn);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 // batch parallel dataflow
 for(int b = 0; b != Batch; b += TileBB) { // blockIdx.x
   for(int n = 0; n != Neuron; n += TileBN) { // blockIdx.y
 
-    for(int bbb = bb; bbb != bb + TileTB; ++bbb) { // threadIdx.x
-  
-      for(int bb = b; bb != b + TileBB; bb += TileTB) { 
+    for(int bbb = b; bbb != b + TileBB; ++bbb) { // threadIdx.x
         for(int k = 0; k != Neuron; ++k) {
           val_I = I(bbb, k);
           for(int nn = n; nn != n + TileBN; nn += TileTN) { 

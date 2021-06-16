@@ -79,34 +79,29 @@ int main(int argc, char* argv[]) {
     HashReorder hash_reorder_t(hash_map[neuron], neuron);
     dense_reorder(input, hash_reorder_t);
 
+    std::vector<COOMatrix> coo_vec; 
+
+
     for(int l = 0; l < layer; ++l) {
         auto weight_file = get_weight_file_name(neuron, l);
         COOMatrix coo(weight_file, 1, false);
         std::cout << "["<< weight_file << "] to COO success!" << std::endl;
         coo.reorder(hash_reorder_t);
+        coo_vec.push_back(coo);
         std::cout << "Reorder success!" << std::endl;
         CSRCSCMatrix csr_csc(coo);
         csr_csc.transpose();
         BlockContainer blocks(csr_csc, SparseMatrixBlockGen::naive_method);
         std::cout << "Structural Info success!" << std::endl;
         MaxInReuseBSchedule schedule(blocks);
-        if(l == 0) {
-            schedule.schedule(16, 7);
-        }
-        else if(l <= 5) {
-            // TODO Fix it
-            schedule.schedule_output_parallel(128, 1, false);
-        }        
-        else {
-            schedule.schedule(128, 1);
-        }
+        schedule.schedule_output_parallel(128, 1, false);
         std::cout << "Schedule succ" << std::endl;
         auto data = schedule.get_data(neuron);
         weight.push_back(data.value);
         row_access.push_back(data.row_access);
     }
     GpuEnv env(0);
-    test_benchmark_graph_challenge(input, weight, row_access, batch, neuron, bias_map[neuron], env);
+    test_benchmark_fused_layer1024_0_1(input, coo_vec, weight, row_access, batch, neuron, bias_map[neuron], env);
     std::cout << "[END]..." << std::endl;
     return 0;
 }

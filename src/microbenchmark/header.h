@@ -23,6 +23,16 @@ namespace ftxj {
     void test_benchmark_n16384_l2_l10_kernel(COOMatrix& coo, std::vector<float> &val, int stride, int batch, int neuron, GpuEnv &env);
     void test_benchmark_n16384_l11_kernel(COOMatrix& coo, std::vector<float> &B_val, std::vector<int> &B_index, int batch, int neuron, GpuEnv &env);
 
+    void test_benchmark_fused_layer1024_0_1(
+        std::vector<std::vector<float>> &input,
+        std::vector<COOMatrix>& coo,
+        std::vector<std::vector<float>> &weight, 
+        std::vector<std::vector<int>> &row_access, 
+        int batch, 
+        int neuron, 
+        float bias,
+        GpuEnv &env
+    );
     // void test_benchmark_n16384_l11_kernel(
     //     COOMatrix& coo, 
     //     std::vector<float> &B_val, 
