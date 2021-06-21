@@ -6,8 +6,8 @@ import sys
 
 
 num = sys.argv[1]
-neuron = 1024
-bucketnumber = 64
+neuron = 65536
+bucketnumber = 4096
 tile_size_str = sys.argv[2]
 
 draw_num = sys.argv[3]
@@ -15,7 +15,7 @@ draw_num = int(draw_num)
 
 tile_size = int(tile_size_str)
 
-open_file_path='../data/neuron1024/n1024-l'+ num + '.tsv'
+open_file_path='../data/neuron65536/n65536-l'+ num + '.tsv'
 save_path_root = "../data_show/"
 
 

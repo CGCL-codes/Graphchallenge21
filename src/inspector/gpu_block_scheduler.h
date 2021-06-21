@@ -165,8 +165,8 @@ namespace ftxj {
                 res.row_access.insert(res.row_access.end(), need_merge.row_access.begin(), need_merge.row_access.end());
             }
             std::vector<float> need_expand(res.value.size() / 5, 0.0625);
-            res.value = std::vector<float>(res.value.size() + res.value.size() / 5, 0.0625);
-            // res.value.insert(res.value.end(), need_expand.begin(), need_expand.end());
+            // res.value = std::vector<float>(res.value.size() + res.value.size() / 5, 0.0625);
+            res.value.insert(res.value.end(), need_expand.begin(), need_expand.end());
             return res;
         }
 
@@ -197,7 +197,7 @@ namespace ftxj {
             }
             std::vector<float> need_expand(res.value.size() / 5, 0.0625); 
             res.value.insert(res.value.end(), need_expand.begin(), need_expand.end()); // some bugs...
-            res.value = std::vector<float>(res.value.size() + res.value.size() / 5, 0.0625);
+            // res.value = std::vector<float>(res.value.size() + res.value.size() / 5, 0.0625);
             return res;
         }
 

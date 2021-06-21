@@ -20,6 +20,13 @@ namespace ftxj {
             set_up(gpu_id, print_device_info);
         }
 
+        GpuEnv(std::vector<int> gpu_id, bool print_device_info = true) {
+            for(int i = 0; i < gpu_id.size(); ++i) {
+                set_up(gpu_id[i], print_device_info);
+            }
+        }
+
+
         void set_up(int gpu_id, bool print_device_info = true) {
             Safe_Call(cudaSetDevice(gpu_id));
             if(print_device_info) {
@@ -27,7 +34,7 @@ namespace ftxj {
                 Safe_Call(cudaGetDeviceCount(&deviceCount));
                 printf("\n");
                 printf("Device Count: %d\n",deviceCount);
-                int dev = 0;
+                int dev = gpu_id;
                 
                 cudaDeviceProp deviceProp;
                 Safe_Call(cudaGetDeviceProperties(&deviceProp, dev));

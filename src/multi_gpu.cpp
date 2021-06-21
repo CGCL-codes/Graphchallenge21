@@ -1,13 +1,14 @@
 #include "utils/header.h"
 #include "reorder/header.h"
 #include "inspector/header.h"
-#include "gpu_lib/header.h"
-#include "microbenchmark/header.h"
+// #include "gpu_lib/header.h"
+#include "microbenchmark/multi_gpu/header.h"
 #include "fuse/header.h"
 #include <functional>
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
+#include <mpi.h>
 using namespace ftxj;
 
 
@@ -19,12 +20,14 @@ std::string get_weight_file_name(int neuron, int layer) {
 }
 
 void dense_reorder(std::vector<std::vector<float>> &input, Reorder &reorder_class) {
-    std::vector<std::vector<float>> old = input;
+    // std::vector<std::vector<float>> old = input;
     for(int i = 0; i < input.size(); ++i) {
+        std::vector<float> tmp(input[i].size());
         for(int j = 0; j < input[i].size(); ++j) {
             auto new_j = reorder_class.reorder(j);
-            input[i][new_j] = old[i][j];
+            tmp[new_j] = input[i][j];
         }
+        input[i] = tmp;
     }
 }
 
@@ -38,22 +41,44 @@ void read_input(std::vector<std::vector<float>> &input, int neuron, int batch) {
     }
     int b, n;
     float val;
+    long read_num = 0;
     while(input_file >> b >> n >> val) {
         if(b <= batch) {
+            read_num++;
             input[b - 1][n - 1] = val;
+            if(val != 1.00) {
+                printf("read input %d, %f\n", b, val);
+            }
         }
     }
+    std::cout << "Read Input success! read_numeber = " << read_num << std::endl;
 }
 
 int main(int argc, char* argv[]) {
+    
+    char hostname[MPI_MAX_PROCESSOR_NAME];
+    int task_count;
+    int rank;
+    int len;
+    int ret;
 
-    if(argc != 4) {
-        std::cout << "Usage: exe neuron batch layer" << std::endl;
-        return 0;
+    ret = MPI_Init(&argc, &argv);
+    if (MPI_SUCCESS != ret) {
+        printf("start mpi fail\n");
+        MPI_Abort(MPI_COMM_WORLD, ret);
     }
-    int neuron = atoi(argv[1]);
-    int batch = atoi(argv[2]);
-    int layer = atoi(argv[3]);
+
+    MPI_Comm_size(MPI_COMM_WORLD, &task_count);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Get_processor_name(hostname, &len);
+
+    if(rank == 0)
+        printf("task_count = %d, my rank = %d on %s\n", task_count, rank, hostname);
+
+
+    int neuron = 16384;
+    int batch = 60000;
+    int layer = 1920;
 
     std::map<int, int> hash_map = {
         {65536, 4096},
@@ -69,41 +94,55 @@ int main(int argc, char* argv[]) {
         {1024, -0.3}
     };
 
+    std::map<int, float> type_1 = {
+        {65536, 12},
+        {16384, 10},
+        {4096, 8},
+        {1024, 6}
+    };
+
     std::vector<std::vector<float>> input(batch, std::vector<float>(neuron));
     std::vector<std::vector<float>> weight; 
     std::vector<std::vector<int>> row_access; 
 
-    std::cout << "[BEGIN]..." << std::endl;
+
+    std::cout << "GPU[" << rank << "] " << "[BEGIN]..." << std::endl;
     read_input(input, neuron, batch);
-    std::cout << "Read Input success!" << std::endl;
+    std::cout << "GPU[" << rank << "] " << "Read Input success!" << std::endl;
     HashReorder hash_reorder_t(hash_map[neuron], neuron);
     dense_reorder(input, hash_reorder_t);
-
-    std::vector<COOMatrix> coo_vec; 
-
 
     for(int l = 0; l < layer; ++l) {
         auto weight_file = get_weight_file_name(neuron, l);
         COOMatrix coo(weight_file, 1, false);
-        std::cout << "["<< weight_file << "] to COO success!" << std::endl;
+        std::cout << "GPU[" << rank << "] " << "["<< weight_file << "] to COO success!" << std::endl;
         coo.reorder(hash_reorder_t);
-        coo_vec.push_back(coo);
-        std::cout << "Reorder success!" << std::endl;
+        std::cout << "GPU[" << rank << "] " << "Reorder success!" << std::endl;
         CSRCSCMatrix csr_csc(coo);
         csr_csc.transpose();
         BlockContainer blocks(csr_csc, SparseMatrixBlockGen::naive_method);
-        std::cout << "Structural Info success!" << std::endl;
+        std::cout << "GPU[" << rank << "] " << "Structural Info success!" << std::endl;
         MaxInReuseBSchedule schedule(blocks);
-        schedule.schedule_output_parallel(128, 1, false);
-        std::cout << "Schedule succ" << std::endl;
+        if(l == 0) {
+            schedule.schedule(16, 7);
+        }
+        else if(l < type_1[neuron]) {
+            schedule.schedule_output_parallel(128, 1, false);
+        }        
+        else {
+            schedule.schedule(128, 1);
+        }
+        std::cout << "GPU[" << rank << "] " << "Schedule succ" << std::endl;
         auto data = schedule.get_data(neuron);
         weight.push_back(data.value);
         row_access.push_back(data.row_access);
     }
-    GpuEnv env(3);
-    test_benchmark_fused_layer1024_0_1(input, coo_vec, weight, row_access, batch, neuron, bias_map[neuron], env);
-    // test_benchmark_fuse_cmp_layer1024_0_1(input, weight, row_access, batch, neuron, bias_map[neuron], env);
-    
-    std::cout << "[END]..." << std::endl;
+    int gpu_id = 0;
+    if(rank == 0) gpu_id = 0;
+    if(rank == 1) gpu_id = 3;
+    test_benchmark_multi_gpu_graph_challenge(input, weight, row_access, (batch + 1) / 4, neuron, bias_map[neuron], gpu_id, rank);
+    std::cout << "GPU[" << rank << "] " <<"[END]..." << std::endl;
+    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Finalize();
     return 0;
 }

@@ -9,8 +9,8 @@ __device__ inline float __ReLU(float x){
    return x<0.0?0.0:x>32.0?32.0:x;
 };
 
-#define MINIBATCH 8
-#define UNROLL 8
+#define MINIBATCH 4
+#define UNROLL 4
 
 __global__ void n16384_l1_l11_kernel(
 	float * __restrict__ A, 
@@ -50,10 +50,10 @@ __global__ void n16384_l1_l11_kernel(
             res[1 + f * UNROLL] += shared[(f * UNROLL + 1) * shared_size + idx] * val;
             res[2 + f * UNROLL] += shared[(f * UNROLL + 2) * shared_size + idx] * val;
             res[3 + f * UNROLL] += shared[(f * UNROLL + 3) * shared_size + idx] * val;
-            res[4 + f * UNROLL] += shared[(f * UNROLL + 4) * shared_size + idx] * val;
-            res[5 + f * UNROLL] += shared[(f * UNROLL + 5) * shared_size + idx] * val;
-            res[6 + f * UNROLL] += shared[(f * UNROLL + 6) * shared_size + idx] * val;
-            res[7 + f * UNROLL] += shared[(f * UNROLL + 7) * shared_size + idx] * val;
+            // res[4 + f * UNROLL] += shared[(f * UNROLL + 4) * shared_size + idx] * val;
+            // res[5 + f * UNROLL] += shared[(f * UNROLL + 5) * shared_size + idx] * val;
+            // res[6 + f * UNROLL] += shared[(f * UNROLL + 6) * shared_size + idx] * val;
+            // res[7 + f * UNROLL] += shared[(f * UNROLL + 7) * shared_size + idx] * val;
         }
     }
     for(int f = 0; f < MINIBATCH ; ++f) {

@@ -311,6 +311,7 @@ void test_benchmark_graph_challenge(
         {1024, 6},
         {4096, 8},
         {16384, 10}
+        {65536, 12}
     };
     std::map<int, int> stride_map = {
         {1, 16},

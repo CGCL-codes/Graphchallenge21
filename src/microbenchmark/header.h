@@ -54,6 +54,18 @@ namespace ftxj {
     //     GpuEnv &env
     // );
 
+
+
+    void test_benchmark_SNIG(
+        std::vector<std::vector<float>> &input,
+        std::vector<SNIGMatrix> &weights, 
+        int batch, 
+        int neuron,
+        int sec_size,
+        int nnzs, 
+        float bias,
+        GpuEnv &env
+    );
     void vector4_load_data_benchmark(GpuEnv &env);
     void test_shared_memory_mm(COOMatrix&, std::vector<float> &val, std::vector<int> &row_access, GpuEnv &env);
 };

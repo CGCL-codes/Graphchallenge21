@@ -585,5 +585,69 @@ namespace ftxj {
 
     };
 
+    class SNIGMatrix {
+    public:
+        int sec_size;
+        int num_secs;
+        int nnzs;
+        int neuron;
+        int* row;
+        int* col;
+        float* val;
+        SNIGMatrix(std::string file_name, int nn, int sec_size_, int n) : sec_size(sec_size_) {
+            nnzs = nn;
+            neuron = n;
+            num_secs = neuron / sec_size;
+            col = new int [num_secs * neuron + 1];
+            col[0] = 0;
+            row = new int [nnzs];
+            val = new float [nnzs];
+            init_with_coo_file(file_name);
+        }
 
+        void init_with_coo_file(std::string &coo_input_file) {
+            std::ifstream input_file(coo_input_file);
+            if(!input_file){
+                std::cout << "File:" << coo_input_file << " does not exists.\n";
+                exit(-1);
+            }
+            int u_f, v_f;
+            float val_f;
+            
+            std::vector<int> ori_row;
+            std::vector<int> ori_col;
+            std::vector<float> ori_val;
+
+            // while(input_file >> u_f >> v_f >> val_f) {
+            while(input_file >> v_f >> u_f >> val_f) {
+                ori_row.push_back(u_f - 1);
+                ori_col.push_back(v_f - 1);
+                ori_val.push_back(val_f);
+            }
+
+            int add_nums = 0;
+            for(int col_idx = 0; col_idx < neuron; ++col_idx) {
+                for(int sec_idx = 0; sec_idx < num_secs; ++sec_idx) {
+                    int len = 0;
+                    for(int iter = 0; iter < ori_col.size(); ++iter) {
+                        if(ori_col[iter] == col_idx && ori_row[iter] / sec_size == sec_idx) {
+                            row[add_nums] = ori_row[iter];
+                            val[add_nums] = ori_val[iter];
+                            add_nums++;
+                            len++;
+                        }
+                    }
+                    col[col_idx * num_secs + sec_idx + 1] = col[col_idx * num_secs + sec_idx] + len;
+                }
+            }
+
+            // for(int i = 0; i < num_secs * neuron + 1; ++i) {
+            //     printf("%d, ", col[i]);
+            //     if(i % 100 == 0) {
+            //         printf("\n");
+            //     }
+            // }
+            // printf("\n");
+        }
+    };
 };
