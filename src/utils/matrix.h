@@ -4,6 +4,7 @@
 #include <fstream>
 #include <algorithm>
 #include <stdlib.h> 
+#include <set>
 
 #include "../reorder/reorder.h"
 
@@ -25,8 +26,8 @@ namespace ftxj {
 
 
     class COOMatrix : public SparseMatrix {
-        std::vector<Elm> coo_values_;
     public:
+        std::vector<Elm> coo_values_;
         bool row_first;
         bool col_first;
         
@@ -58,7 +59,179 @@ namespace ftxj {
             return ElmIterator(coo_values_.end());
         }
 
-        
+        int get_input_cost(std::set<int> R_signature, int TB, int TN) {
+            return R_signature.size() * TB;
+        }
+
+        int get_output_cost(std::set<int> C_signature, int TB, int TN) {
+            return C_signature.size() * TB;
+        }
+
+        int get_weight_cost(std::vector<int> number_distribution, int begin, int end) {
+            int res = 0;
+            for(int i = begin; i < end; ++i) {
+                res += number_distribution[i];
+            }
+            return res;
+        }
+
+        int get_balance_cost(std::vector<int> number_distribution, int begin, int end) {
+            int max = 0;
+            int min = 100000;
+            for(int i = begin; i < end; ++i) {
+                max = std::max(max, number_distribution[i]);
+                min = std::min(min, number_distribution[i]);
+            }
+            return max - min;
+        }
+
+        int get_random_cost(std::set<int> C_signature) {
+            int beg = (*C_signature.begin()) - 1;
+            int success = 0;
+            for(auto i : C_signature) {
+                if(i == beg + 1) {
+                    success += 1;
+                }
+                beg = i;
+            }
+            return C_signature.size() - success;
+        }
+
+        void cost_analysis(int tb1, int tn1, int tb2, int tn2) {
+            std::vector<std::set<int>> row_signature_1(row_number / tn1);
+            std::vector<std::set<int>> col_signature_1(col_number / tn1);
+            std::vector<std::set<int>> row_signature_2(row_number / tn2);
+            std::vector<std::set<int>> col_signature_2(col_number / tn2);
+            std::vector<int> len_signature(row_number, 0);
+
+            std::cout << "[Execution Model One Cost Analysis]" << std::endl;
+
+            std::cout << "nnzs = " << coo_values_.size() << std::endl;
+            
+            std::cout << "signature size = " << row_number / tn1 << ", " \
+            << col_number / tn1 << ", " << row_number / tn2 << ", " \
+            << col_number / tn2 << std::endl; 
+            
+
+            for(int i = 0; i < coo_values_.size(); ++i) {
+                if(i == 1000) std::cout << i << std::endl;
+                int row_sec_1 = coo_values_[i].row / tn1;
+                int col_sec_1 = coo_values_[i].col / tn1;
+                int row_sec_2 = coo_values_[i].row / tn2;
+                int col_sec_2 = coo_values_[i].col / tn2;
+                // if(col_sec_1 == 0) {
+                //     std::cout << coo_values_[i].row << ",";
+                // }
+                row_signature_1[row_sec_1].insert(coo_values_[i].col);
+                col_signature_1[row_sec_1].insert(coo_values_[i].row);
+                
+                len_signature[coo_values_[i].col] ++;
+
+                row_signature_2[row_sec_2].insert(coo_values_[i].col);
+                col_signature_2[row_sec_2].insert(coo_values_[i].row);
+            }
+
+            std::cout << "[Signature Success]" << std::endl;
+
+
+
+
+            int cost_input_1 = 0;
+            int cost_input_2 = 0;
+
+            int cost_output_1 = 0;
+            int cost_output_2 = 0;
+
+            int cost_weight_1 = 0;
+            int cost_weight_2 = 0;
+
+            int cost_balance_1 = 0;
+            int cost_balance_2 = 0;
+
+            int balance_cost_1 = 0;
+            int balance_cost_2 = 0;
+
+            int random_cost_1 = 0;
+            int random_cost_2 = 0;
+
+            for(int i = 0; i < col_number / tn1; ++i) {
+                cost_input_1 += get_input_cost(row_signature_1[i], tb1, tn1);
+
+                // for(auto iter : row_signature_1[i]) {
+                //     std::cout << iter << ", "; 
+                // }
+                // std::cout << "[In]" << cost_input_1 << std::endl;
+
+                cost_weight_1 += get_weight_cost(len_signature, i * tn1, (i + 1) * tn1);
+                cost_output_1 += get_output_cost(col_signature_1[i], tb1, tn1);
+
+
+                // for(auto iter : col_signature_1[i]) {
+                //     std::cout << iter << ", "; 
+                // }
+                // std::cout << "[Out]" << cost_output_1 << std::endl;
+                // exit(1);
+
+
+                balance_cost_1 += get_balance_cost(len_signature, i * tn1, (i + 1) * tn1);
+                random_cost_1 += get_random_cost(row_signature_1[i]);
+                // std::cout << "[Random]" << random_cost_1 << std::endl;
+            } 
+
+            for(int i = 0; i < col_number / tn2; ++i) {
+                cost_weight_2 += get_weight_cost(len_signature, i * tn2, (i + 1) * tn2);
+                cost_output_2 += get_output_cost(col_signature_2[i], tb2, tn2);
+                cost_input_2 += get_input_cost(row_signature_2[i], tb2, tn2);
+            }
+            std::cout << "[Input]" << cost_input_1 << std::endl;
+            std::cout << "[Input]" << cost_input_2 << std::endl;
+
+            std::cout << "[Out]" << cost_output_1 << std::endl;
+            std::cout << "[Out]" << cost_output_2 << std::endl;
+
+            cost_input_1 = cost_input_1 / (col_number / tn1);
+            cost_weight_1 = cost_weight_1 / (col_number / tn1);
+            cost_output_1 = cost_output_1 / (col_number / tn1);
+            balance_cost_1 = balance_cost_1 / (col_number / tn1);
+            random_cost_1 = random_cost_1 / (col_number / tn1);
+
+
+            cost_input_2 = cost_input_2 / (col_number / tn2);
+            cost_weight_2 = cost_weight_2 / (col_number / tn2);
+            cost_output_2 = cost_output_2 / (col_number / tn2);
+
+            std::cout << "[2 Input]" << cost_input_2 << std::endl;
+            std::cout << "[2 Weight]" << cost_weight_2 << std::endl;
+            std::cout << "[2 Output]" << cost_output_2 << std::endl;
+
+            std::cout << std::endl;
+            std::cout << std::endl;
+            std::cout << std::endl;
+            
+
+            std::cout << "[1 Input]" << cost_input_1 << std::endl;
+            std::cout << "[1 Weight]" << cost_weight_1 << std::endl;
+            std::cout << "[1 Output]" << cost_output_1 << std::endl;
+            std::cout << "[1 Balance]" << balance_cost_1 << std::endl;
+            std::cout << "[1 Random]" << random_cost_1 << std::endl;
+            std::cout << "[1 Random Ratio]" << (float)random_cost_1 * tb1 / (float)cost_input_1 << std::endl;
+
+
+            std::cout << std::endl;
+            std::cout << std::endl;
+            std::cout << std::endl;
+
+            std::cout << "[1/2 Input]" << (float)cost_input_1 / (float)(cost_input_2) << std::endl;
+            std::cout << "[1/2 Weight]" << (float)cost_weight_1 / (float)(cost_weight_2) << std::endl;
+            std::cout << "[1/2 Output]" << (float)cost_output_1 / (float)(cost_output_2)<< std::endl;
+            std::cout << "[1/2 Total]" << (float)(cost_input_1 +cost_output_1)  / (float)(cost_output_2 + cost_input_2)<< std::endl;
+            std::cout << "[1/2 Total]" << (float)(cost_input_1 +cost_weight_1+cost_output_1)  / (float)(cost_output_2 + cost_input_2 + cost_weight_2)<< std::endl;
+
+
+
+        }
+
+
         void to_col_first_ordered() {
             if(col_first) return;
             std::sort(coo_values_.begin(), coo_values_.end(), [](const Elm& e1, const Elm&e2)->bool {
@@ -80,6 +253,8 @@ namespace ftxj {
         }
 
         COOMatrix(std::string coo_input_file, int begin_node_idx, bool T = false) {
+            row_number = 0;
+            col_number = 0;
             std::ifstream input_file(coo_input_file);
             if(!input_file){
                 std::cout << "File:" << coo_input_file << " does not exists.\n";
@@ -140,6 +315,8 @@ namespace ftxj {
             ofile.close();
         }
     };
+
+
 
     class CSRCSCMatrix : public SparseMatrix {
         std::vector<SparseDataType> csr_values_;
@@ -585,7 +762,99 @@ namespace ftxj {
 
     };
 
-    class SNIGMatrix {
+
+    class BFMatrix : public SparseMatrix{
+    public:
+        int TN;
+        int neuron;
+        int* rowoff;
+        int* rowindex;
+        float* val;
+
+        BFMatrix(COOMatrix &coo_matrix, int n, int tn) : TN(tn) {
+            neuron = n;
+            rowoff = new int [neuron * (neuron / TN + 1) + 1];
+            for(int i = 0; i < neuron * (neuron / TN + 1) + 1; ++i) {
+                rowoff[i] = 0;
+            }
+            rowoff[0] = 0;
+            rowindex = new int [32 * neuron];
+            val = new float [32 * neuron];
+            init_with_coo_file(coo_matrix);
+        }
+
+        void init_with_coo_file(COOMatrix &coo_matrix) {
+            int last_col = 0;
+            int len = 0;
+            coo_matrix.to_col_first_ordered();
+            int sec_number = neuron / TN;
+            std::vector<int> sec_inc(sec_number, 0);
+            for(int i = 0; i < coo_matrix.coo_values_.size(); ++i) {
+                int row = coo_matrix.coo_values_[i].row;
+                int col = coo_matrix.coo_values_[i].col;
+                float v = coo_matrix.coo_values_[i].val;
+                int sec_idx = row / TN;
+
+                rowoff[sec_idx * neuron + col + 1]++;
+
+                val[sec_idx * 32 * TN + sec_inc[sec_idx]] = v;
+                rowindex[sec_idx * 32 * TN + sec_inc[sec_idx]] = row;
+                sec_inc[sec_idx] = sec_inc[sec_idx] + 1;
+            }
+
+
+            for(int i = 1; i < neuron * (neuron / TN + 1) + 1; ++i) {
+                rowoff[i] += rowoff[i - 1];
+            }
+            coo_matrix.to_col_first_ordered();
+            // for(int i = 0; i < neuron * (neuron / TN + 1) + 1; ++i) {
+            //     if(i % neuron == 0) printf("%d \n", rowoff[i]);
+            //     // printf("%d, ", rowoff[i]);  
+            // }
+        }
+    };
+
+
+    
+    class cuSPARSEMatrix : public SparseMatrix{
+    public:
+        int neuron;
+        int* len;
+        int* index;
+        float* val;
+
+        cuSPARSEMatrix(COOMatrix &coo_matrix, int n) {
+            neuron = n;
+            len = new int [neuron + 1];
+            for(int i = 0; i < neuron + 1; ++i) {
+                len[i] = 0;
+            }
+            index = new int [32 * neuron];
+            val = new float [32 * neuron];
+            init_with_coo_file(coo_matrix);
+        }
+
+        void init_with_coo_file(COOMatrix &coo_matrix) {
+            coo_matrix.to_row_first_ordered();
+            int l = 0;
+            for(int i = 0; i < coo_matrix.coo_values_.size(); ++i) {
+                int r = coo_matrix.coo_values_[i].row;
+                int c = coo_matrix.coo_values_[i].col;
+                float v = coo_matrix.coo_values_[i].val;
+                len[r + 1]++;
+                val[l] = v;
+                index[l++] = c;
+            }
+            for(int i = 1; i < neuron + 1; ++i) {
+                len[i] += len[i - 1];
+            }
+            coo_matrix.to_col_first_ordered();
+        }
+    };
+
+
+    class SNIGMatrix : public SparseMatrix{
+    std::vector<Elm> coo_values_;
     public:
         int sec_size;
         int num_secs;
@@ -594,6 +863,12 @@ namespace ftxj {
         int* row;
         int* col;
         float* val;
+        void to_col_first_ordered() {
+            std::sort(coo_values_.begin(), coo_values_.end(), [](const Elm& e1, const Elm&e2)->bool {
+                if(e1.col != e2.col) return e1.col < e2.col;
+                else return e1.row < e2.row;
+            });
+        }
         SNIGMatrix(std::string file_name, int nn, int sec_size_, int n) : sec_size(sec_size_) {
             nnzs = nn;
             neuron = n;
@@ -613,31 +888,78 @@ namespace ftxj {
             }
             int u_f, v_f;
             float val_f;
-            
-            std::vector<int> ori_row;
-            std::vector<int> ori_col;
-            std::vector<float> ori_val;
+            // std::vector<int> ori_row;
+            // std::vector<int> ori_col;
+            // std::vector<float> ori_val;
 
             // while(input_file >> u_f >> v_f >> val_f) {
+            // while(input_file >> v_f >> u_f >> val_f) {
+            //     ori_row.push_back(u_f - 1);
+            //     ori_col.push_back(v_f - 1);
+            //     ori_val.push_back(val_f);
+            // }
+
             while(input_file >> v_f >> u_f >> val_f) {
-                ori_row.push_back(u_f - 1);
-                ori_col.push_back(v_f - 1);
-                ori_val.push_back(val_f);
+                 coo_values_.push_back({u_f - 1, v_f - 1, val_f});
             }
 
-            int add_nums = 0;
-            for(int col_idx = 0; col_idx < neuron; ++col_idx) {
-                for(int sec_idx = 0; sec_idx < num_secs; ++sec_idx) {
+
+            // for(int col_idx = 0; col_idx < neuron; ++col_idx) {
+            //     for(int sec_idx = 0; sec_idx < num_secs; ++sec_idx) {
+            //         int len = 0;
+            //         for(int iter = 0; iter < ori_col.size(); ++iter) {
+            //             if(ori_col[iter] == col_idx && ori_row[iter] / sec_size == sec_idx) {
+            //                 row[add_nums] = ori_row[iter];
+            //                 val[add_nums] = ori_val[iter];
+            //                 add_nums++;
+            //                 len++;
+            //             }
+            //         }
+            //         col[col_idx * num_secs + sec_idx + 1] = col[col_idx * num_secs + sec_idx] + len;
+            //     }
+            // }
+
+            // for(int sec_idx = 0; sec_idx < num_secs; ++sec_idx) {//ori_row有序
+            //     for(int col_idx = 0; col_idx < neuron; ++col_idx) {
+            //         int len = 0;
+            //         for(int iter = 0; iter < ori_col.size(); ++iter) {
+            //             if(ori_col[iter] == col_idx && ori_row[iter] / sec_size == sec_idx) {
+            //                 row[add_nums] = ori_row[iter];
+            //                 val[add_nums] = ori_val[iter];
+            //                 add_nums++;
+            //                 len++;
+            //             }
+            //         }
+            //         col[sec_idx * neuron + col_idx + 1] = col[sec_idx * neuron + col_idx ] + len;
+            //     }
+            // }
+
+            this->to_col_first_ordered();
+            for(int sec_idx = 0; sec_idx < num_secs; ++sec_idx){
+                int col_increment = 0;
+                for(int iter = 0; iter < coo_values_.size(); iter+=32) {
                     int len = 0;
-                    for(int iter = 0; iter < ori_col.size(); ++iter) {
-                        if(ori_col[iter] == col_idx && ori_row[iter] / sec_size == sec_idx) {
-                            row[add_nums] = ori_row[iter];
-                            val[add_nums] = ori_val[iter];
-                            add_nums++;
+                    for(int idx = iter; idx < iter + 32; ++idx){
+                        if(coo_values_[idx].row / sec_size == sec_idx)
                             len++;
-                        }
                     }
-                    col[col_idx * num_secs + sec_idx + 1] = col[col_idx * num_secs + sec_idx] + len;
+                    col[sec_idx * neuron + col_increment + 1] = col[sec_idx * neuron + col_increment ] + len;
+                    col_increment++;
+                }
+            }
+
+            
+            for(int iter = 0; iter < coo_values_.size(); iter+=32) {// iter/32为colidx
+                for(int sec_idx = 0; sec_idx < num_secs; ++sec_idx){
+                    int add_nums = 0;
+                    int col_sum = col[iter / 32 + sec_idx * neuron] - col[0];
+                    for(int idx = iter; idx < iter + 32; ++idx){
+                        if(coo_values_[idx].row / sec_size == sec_idx) {
+                            row[col_sum + add_nums] = coo_values_[idx].row;
+                            val[col_sum + add_nums] = coo_values_[idx].val;
+                            add_nums++;
+                            }
+                    }
                 }
             }
 
@@ -651,3 +973,4 @@ namespace ftxj {
         }
     };
 };
+

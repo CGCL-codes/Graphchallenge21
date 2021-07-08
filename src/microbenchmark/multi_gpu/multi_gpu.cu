@@ -514,7 +514,8 @@ void test_benchmark_multi_gpu_graph_challenge(
         last_feature = this_round_batch;
         this_round_batch = feature;
 
-        std::cout << "[GPU " << gpu_index << "], " << "Layer " << l  << ", Batch = "<< feature << std::endl;
+        if(l % 100 == 0 || l == layer)
+            std::cout << "[GPU " << gpu_index << "], " << "Layer " << l  << ", Batch = "<< feature << std::endl;
 
         Safe_Call(cudaMemcpyAsync(category_d, category, sizeof(int) * feature, cudaMemcpyHostToDevice, stream));
 
@@ -522,7 +523,8 @@ void test_benchmark_multi_gpu_graph_challenge(
             Safe_Call(cudaMemcpyAsync(old_to_new_map_d, old_to_new_map, sizeof(int) * transpose_batch, cudaMemcpyHostToDevice, stream));
 
         float time = env.get_event_time("row-succ-20-uiuc-kernel"); 
-        std::cout << "Layer "<< l << " exec Time = " << time << ", " << min_time <<  "ms, Utilization = " << (min_time / time) << std::endl;
+        if(l % 100 == 0 || l == layer)
+            std::cout << "Layer "<< l << " exec Time = " << time << ", " << min_time <<  "ms, Utilization = " << (min_time / time) << std::endl;
         all_time += time;
         all_time_min += min_time;
     }

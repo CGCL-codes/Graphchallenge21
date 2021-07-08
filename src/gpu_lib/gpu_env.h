@@ -32,22 +32,22 @@ namespace ftxj {
             if(print_device_info) {
                 int deviceCount;
                 Safe_Call(cudaGetDeviceCount(&deviceCount));
-                printf("\n");
-                printf("Device Count: %d\n",deviceCount);
+                // printf("\n");
+                // printf("Device Count: %d\n",deviceCount);
                 int dev = gpu_id;
                 
                 cudaDeviceProp deviceProp;
                 Safe_Call(cudaGetDeviceProperties(&deviceProp, dev));
-                printf("Device %d name: %s\n",dev,deviceProp.name);
-                printf("Computational Capabilities: %d, %d\n",deviceProp.major,deviceProp.minor);
-                printf("Maximum global memory size: %lu\n",deviceProp.totalGlobalMem);
-                printf("Maximum constant memory size: %lu\n",deviceProp.totalConstMem);
-                printf("Maximum shared memory size per block: %lu\n",deviceProp.sharedMemPerBlock);
-                printf("Maximum block dimensions: %dx%dx%d\n",deviceProp.maxThreadsDim[0],deviceProp.maxThreadsDim[1],deviceProp.maxThreadsDim[2]);
-                printf("Maximum grid dimensions: %dx%dx%d\n",deviceProp.maxGridSize[0],deviceProp.maxGridSize[1],deviceProp.maxGridSize[2]);
-                printf("Maximum threads per block: %d\n",deviceProp.maxThreadsPerBlock);
-                printf("Warp size: %d\n",deviceProp.warpSize);
-                printf("\n");
+                // printf("Device %d name: %s\n",dev,deviceProp.name);
+                // printf("Computational Capabilities: %d, %d\n",deviceProp.major,deviceProp.minor);
+                // printf("Maximum global memory size: %lu\n",deviceProp.totalGlobalMem);
+                // printf("Maximum constant memory size: %lu\n",deviceProp.totalConstMem);
+                // printf("Maximum shared memory size per block: %lu\n",deviceProp.sharedMemPerBlock);
+                // printf("Maximum block dimensions: %dx%dx%d\n",deviceProp.maxThreadsDim[0],deviceProp.maxThreadsDim[1],deviceProp.maxThreadsDim[2]);
+                // printf("Maximum grid dimensions: %dx%dx%d\n",deviceProp.maxGridSize[0],deviceProp.maxGridSize[1],deviceProp.maxGridSize[2]);
+                // printf("Maximum threads per block: %d\n",deviceProp.maxThreadsPerBlock);
+                // printf("Warp size: %d\n",deviceProp.warpSize);
+                // printf("\n");
             }
         }
 

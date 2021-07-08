@@ -54,16 +54,6 @@ float ReLU(float x){
     return x<0.0?0.0:x>32.0?32.0:x;
  };
 
-__global__ void __launch_bounds__(256,4) dummy_kernel(FEATPREC *nextfeat, float bias, int neuron, int mybatch, int *active){
-    int testbatch = gridDim.x * blockDim.x + threadIdx.x;
-    if(testbatch > 60000) return;
-    for(int n = 0; n < neuron; n++) {
-        nextfeat[testbatch * neuron + n] = __ReLU(nextfeat[testbatch * neuron + n] + bias);
-        if(nextfeat[testbatch * neuron + n]) {
-            atomicAdd(active + testbatch, 1);
-        }
-    }
-};
 
 void setup_gpu() {
     OR_FATAL(cudaSetDevice(0));

@@ -12,7 +12,7 @@ namespace ftxj {
             weight.to_row_first_ordered();
             std::vector<std::vector<float>> res(batch, std::vector<float>(neuron, 0.0));
             for(int b = 0; b < batch; ++b) {
-                if(b % 100 == 0) std::cout << "run " << b << "..." << std::endl;
+                if(b % 10000 == 0) std::cout << "run " << b << "..." << std::endl;
                 for(auto iter = weight.begin(); iter != weight.end(); ++iter) {
                     int row = (*iter).row;
                     int col = (*iter).col;
@@ -24,10 +24,10 @@ namespace ftxj {
                         res[b][col] += in * val;
                         // if(b == 1 && col == 16352) {
                         //     printf("%f * %f %d\n", in, val, row);
+                        // // }
+                        // if(b == 0 && col == 62) {
+                        //     printf("0 %f * %f %d\n", in, val, row);
                         // }
-                        if(b == 0 && col == 0) {
-                            printf("0 %f * %f %d\n", in, val, row);
-                        }
                     }
                     else {
                         if(inputT) in = input[b * neuron + col];
@@ -36,9 +36,9 @@ namespace ftxj {
                         // if(b == 1 && row == 16352) {
                         //     printf("%f * %f %d\n", in, val, col);
                         // }
-                        if(b == 0 && row == 0) {
-                            printf("0 %f * %f %d\n", in, val, col);
-                        }
+                        // if(b == 0 && row == 62) {
+                        //     printf("0 %f * %f %d\n", in, val, col);
+                        // }
                     }
                 }
                 for(int j = 0; j < neuron; ++j) {

@@ -62,6 +62,12 @@ int main(int argc, char* argv[]) {
     int len;
     int ret;
 
+
+    int neuron = atoi(argv[1]);
+    int batch = atoi(argv[2]);
+    int layer = atoi(argv[3]);
+    // int nnzs = atoi(argv[4]);
+
     ret = MPI_Init(&argc, &argv);
     if (MPI_SUCCESS != ret) {
         printf("start mpi fail\n");
@@ -76,9 +82,9 @@ int main(int argc, char* argv[]) {
         printf("task_count = %d, my rank = %d on %s\n", task_count, rank, hostname);
 
 
-    int neuron = 16384;
-    int batch = 60000;
-    int layer = 1920;
+    // int neuron = 16384;
+    // int batch = 60000;
+    // int layer = 1920;
 
     std::map<int, int> hash_map = {
         {65536, 4096},
@@ -139,8 +145,10 @@ int main(int argc, char* argv[]) {
     }
     int gpu_id = 0;
     if(rank == 0) gpu_id = 0;
-    if(rank == 1) gpu_id = 3;
-    test_benchmark_multi_gpu_graph_challenge(input, weight, row_access, (batch + 1) / 4, neuron, bias_map[neuron], gpu_id, rank);
+    if(rank == 1) gpu_id = 1;
+    if(rank == 2) gpu_id = 2;
+    if(rank == 3) gpu_id = 3;
+    test_benchmark_multi_gpu_graph_challenge(input, weight, row_access, (batch + 1) / 2, neuron, bias_map[neuron], gpu_id, rank);
     std::cout << "GPU[" << rank << "] " <<"[END]..." << std::endl;
     MPI_Barrier(MPI_COMM_WORLD);
     MPI_Finalize();

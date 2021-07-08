@@ -28,6 +28,9 @@ __global__ void __launch_bounds__(1024,1) dummy_kernel(
 		for(int n = threadIdx.x; n < mapnz; n += blockDim.x){
 			int ind = map[mapdispl[buff]+n];
 			for(unsigned int f = 0; f < MINIBATCH; f++) {
+                // if((blockIdx.y * MINIBATCH+f) * (unsigned int) neuron+ind >= neuron * 32) {
+                //     printf("bugs %d\n", ind);
+                // }
 				shared[f*buffsize+n] = currfeat[(blockIdx.y * MINIBATCH+f) * (unsigned int) neuron+ind];
 			}
     	}
@@ -121,6 +124,7 @@ void test_benchmark_20_uiuc(COOMatrix &coo, UIUCMatrix &matrix, int batch, GpuEn
     Safe_Call(cudaMemcpy(output, nextfeat, sizeof(float) * neuron * mybatch, cudaMemcpyDeviceToHost));
 
     std::cout << "Kernel Exec Time [20-uiuc] = " << time << "ms"<< std::endl;
+    std::cout << "Flops [20-uiuc] = " << float(2 * batch * neuron * 32) /  time * 1000 /1e12 << "TFLOPS"<< std::endl;
     
 	CpuSpmm::run_and_cmp(coo, input, neuron, mybatch, output);
 }

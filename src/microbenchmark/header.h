@@ -34,6 +34,18 @@ namespace ftxj {
         GpuEnv &env
     );
 
+    void test_benchmark_cusparse(COOMatrix& coo, 
+        cuSPARSEMatrix &matrix, 
+        int neuron, int batch);
+
+        
+    void test_benchmark_19_BF(
+        COOMatrix &coo, BFMatrix &matrix, 
+        int neuron, int batch, int TN, 
+        int blockx, int blocky,
+        GpuEnv &env
+    );
+
     void test_benchmark_fuse_cmp_layer1024_0_1(
         std::vector<std::vector<float>> &input,
         std::vector<std::vector<float>> &weight, 

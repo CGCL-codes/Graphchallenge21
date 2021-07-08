@@ -94,12 +94,11 @@ int main(int argc, char* argv[]) {
     std::cout << "[BEGIN]..." << std::endl;
     read_input(input, neuron, batch);
     std::cout << "Read Input success!" << std::endl;
-
     std::vector<SNIGMatrix> weights;
     
     for(int l = 0; l < layer; ++l) {
         auto weight_file = get_weight_file_name(neuron, l);
-        SNIGMatrix snig_weight(weight_file, nnzs, sec_size, neuron);
+        SNIGMatrix snig_weight(weight_file, 32 * neuron, sec_size, neuron);
         weights.push_back(snig_weight);
         std::cout << "["<< weight_file << "] to SNIG Matrix success!" << std::endl;
     }
