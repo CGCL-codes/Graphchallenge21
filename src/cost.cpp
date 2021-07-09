@@ -6,6 +6,8 @@
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
+
+#include<time.h>
 using namespace ftxj;
 
 
@@ -49,11 +51,24 @@ int main(int argc, char* argv[]) {
 
     std::cout << "[BEGIN]..." << std::endl;
 
-    auto weight_file = get_weight_file_name(neuron, layer);
-    COOMatrix coo(weight_file, 1, false);
-    std::cout << "["<< weight_file << "] to COO success!" << std::endl;
-    coo.reorder(hash_reorder_t);
-    std::cout << "Reorder success!" << std::endl;
-    coo.cost_analysis(TB1, TN1, TB2, TN2);
+
+    clock_t total = 0;
+
+    for(int l = 0; l < layer; ++l) {
+        auto weight_file = get_weight_file_name(neuron, l);
+        COOMatrix coo(weight_file, 1, false);
+        std::cout << "["<< weight_file << "] to COO success!" << std::endl;
+        coo.reorder(hash_reorder_t);
+        std::cout << "Reorder success!" << std::endl;
+
+
+        clock_t startTime,endTime;
+	    startTime = clock();
+        coo.cost_analysis(TB1, TN1, TB2, TN2);
+        endTime = clock();
+        total += endTime - startTime;
+    }
+
+    std::cout << "time = " << (double)(total) / CLOCKS_PER_SEC << std::endl;
     return 0;
 }

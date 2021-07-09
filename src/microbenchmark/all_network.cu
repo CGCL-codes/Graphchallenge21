@@ -310,7 +310,7 @@ void test_benchmark_graph_challenge(
     std::map<int, int> neuron_map = {
         {1024, 6},
         {4096, 8},
-        {16384, 10}
+        {16384, 10},
         {65536, 12}
     };
     std::map<int, int> stride_map = {

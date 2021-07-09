@@ -104,11 +104,11 @@ namespace ftxj {
             std::vector<std::set<int>> col_signature_2(col_number / tn2);
             std::vector<int> len_signature(row_number, 0);
 
-            std::cout << "[Execution Model One Cost Analysis]" << std::endl;
+            // std::cout << "[Execution Model One Cost Analysis]" << std::endl;
 
-            std::cout << "nnzs = " << coo_values_.size() << std::endl;
+            // std::cout << "nnzs = " << coo_values_.size() << std::endl;
             
-            std::cout << "signature size = " << row_number / tn1 << ", " \
+            // std::cout << "signature size = " << row_number / tn1 << ", " \
             << col_number / tn1 << ", " << row_number / tn2 << ", " \
             << col_number / tn2 << std::endl; 
             
@@ -131,7 +131,7 @@ namespace ftxj {
                 col_signature_2[row_sec_2].insert(coo_values_[i].row);
             }
 
-            std::cout << "[Signature Success]" << std::endl;
+            // std::cout << "[Signature Success]" << std::endl;
 
 
 
@@ -183,11 +183,11 @@ namespace ftxj {
                 cost_output_2 += get_output_cost(col_signature_2[i], tb2, tn2);
                 cost_input_2 += get_input_cost(row_signature_2[i], tb2, tn2);
             }
-            std::cout << "[Input]" << cost_input_1 << std::endl;
-            std::cout << "[Input]" << cost_input_2 << std::endl;
+            // std::cout << "[Input]" << cost_input_1 << std::endl;
+            // std::cout << "[Input]" << cost_input_2 << std::endl;
 
-            std::cout << "[Out]" << cost_output_1 << std::endl;
-            std::cout << "[Out]" << cost_output_2 << std::endl;
+            // std::cout << "[Out]" << cost_output_1 << std::endl;
+            // std::cout << "[Out]" << cost_output_2 << std::endl;
 
             cost_input_1 = cost_input_1 / (col_number / tn1);
             cost_weight_1 = cost_weight_1 / (col_number / tn1);
@@ -200,32 +200,32 @@ namespace ftxj {
             cost_weight_2 = cost_weight_2 / (col_number / tn2);
             cost_output_2 = cost_output_2 / (col_number / tn2);
 
-            std::cout << "[2 Input]" << cost_input_2 << std::endl;
-            std::cout << "[2 Weight]" << cost_weight_2 << std::endl;
-            std::cout << "[2 Output]" << cost_output_2 << std::endl;
+            // std::cout << "[2 Input]" << cost_input_2 << std::endl;
+            // std::cout << "[2 Weight]" << cost_weight_2 << std::endl;
+            // std::cout << "[2 Output]" << cost_output_2 << std::endl;
 
-            std::cout << std::endl;
-            std::cout << std::endl;
-            std::cout << std::endl;
+            // std::cout << std::endl;
+            // std::cout << std::endl;
+            // std::cout << std::endl;
             
 
-            std::cout << "[1 Input]" << cost_input_1 << std::endl;
-            std::cout << "[1 Weight]" << cost_weight_1 << std::endl;
-            std::cout << "[1 Output]" << cost_output_1 << std::endl;
-            std::cout << "[1 Balance]" << balance_cost_1 << std::endl;
-            std::cout << "[1 Random]" << random_cost_1 << std::endl;
-            std::cout << "[1 Random Ratio]" << (float)random_cost_1 * tb1 / (float)cost_input_1 << std::endl;
+            // std::cout << "[1 Input]" << cost_input_1 << std::endl;
+            // std::cout << "[1 Weight]" << cost_weight_1 << std::endl;
+            // std::cout << "[1 Output]" << cost_output_1 << std::endl;
+            // std::cout << "[1 Balance]" << balance_cost_1 << std::endl;
+            // std::cout << "[1 Random]" << random_cost_1 << std::endl;
+            // std::cout << "[1 Random Ratio]" << (float)random_cost_1 * tb1 / (float)cost_input_1 << std::endl;
 
 
-            std::cout << std::endl;
-            std::cout << std::endl;
-            std::cout << std::endl;
+            // std::cout << std::endl;
+            // std::cout << std::endl;
+            // std::cout << std::endl;
 
-            std::cout << "[1/2 Input]" << (float)cost_input_1 / (float)(cost_input_2) << std::endl;
-            std::cout << "[1/2 Weight]" << (float)cost_weight_1 / (float)(cost_weight_2) << std::endl;
-            std::cout << "[1/2 Output]" << (float)cost_output_1 / (float)(cost_output_2)<< std::endl;
-            std::cout << "[1/2 Total]" << (float)(cost_input_1 +cost_output_1)  / (float)(cost_output_2 + cost_input_2)<< std::endl;
-            std::cout << "[1/2 Total]" << (float)(cost_input_1 +cost_weight_1+cost_output_1)  / (float)(cost_output_2 + cost_input_2 + cost_weight_2)<< std::endl;
+            // std::cout << "[1/2 Input]" << (float)cost_input_1 / (float)(cost_input_2) << std::endl;
+            // std::cout << "[1/2 Weight]" << (float)cost_weight_1 / (float)(cost_weight_2) << std::endl;
+            // std::cout << "[1/2 Output]" << (float)cost_output_1 / (float)(cost_output_2)<< std::endl;
+            // std::cout << "[1/2 Total]" << (float)(cost_input_1 +cost_output_1)  / (float)(cost_output_2 + cost_input_2)<< std::endl;
+            // std::cout << "[1/2 Total]" << (float)(cost_input_1 +cost_weight_1+cost_output_1)  / (float)(cost_output_2 + cost_input_2 + cost_weight_2)<< std::endl;
 
 
 
